@@ -15,18 +15,18 @@ export const ConfirmView: React.FC<ConfirmViewProps> = ({ intent, rawText, entit
   
   const [data, setData] = useState(() => {
     const base = { ...entities };
-    // Set defaults and fallbacks for UI clarity
+    // Set smart defaults only if AI literally missed them (schema should prevent this)
     if (!base.date) base.date = today;
     if (intent === 'EXPENSE' && !base.currency) base.currency = 'INR';
     
-    // Explicitly ensure vibe/headline are strings for controlled inputs
+    // Fallbacks that are more "human" than placeholders
     if (intent === 'MOOD') {
-      base.vibe = base.vibe || '';
-      base.headline = base.headline || '';
+      base.vibe = base.vibe || 'Neutral';
+      base.headline = base.headline || 'Mood Log';
       base.reason = base.reason || rawText;
     }
     if (intent === 'TODO') {
-      base.headline = base.headline || '';
+      base.headline = base.headline || 'Action Required';
       base.details = base.details || rawText;
     }
     if (intent === 'EXPENSE') {
@@ -56,86 +56,80 @@ export const ConfirmView: React.FC<ConfirmViewProps> = ({ intent, rawText, entit
         <header className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <div className={`w-2.5 h-2.5 rounded-full ${style.color}`}></div>
-            <span className="text-[10px] uppercase tracking-[0.3em] font-black text-[#32213A]/40">{intent} Verified</span>
+            <span className="text-[10px] uppercase tracking-[0.3em] font-black text-[#32213A]/40">{intent} Identified</span>
           </div>
           <h2 className="text-3xl font-black leading-none text-[#32213A] tracking-tighter uppercase">{style.label}</h2>
         </header>
 
         <div className="space-y-5 w-full">
-          {/* MOOD: Vibe and Headline auto-populated */}
           {intent === 'MOOD' && (
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Current Vibe</label>
                 <input 
                   type="text" 
-                  value={data.vibe || ''} 
-                  placeholder="AI analyzing tone..."
+                  value={data.vibe} 
                   onChange={e => setData({...data, vibe: e.target.value})} 
-                  className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] placeholder:text-[#32213A]/20" 
+                  className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A]" 
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Headline</label>
                 <input 
                   type="text" 
-                  value={data.headline || ''} 
-                  placeholder="AI generating summary..."
+                  value={data.headline} 
                   onChange={e => setData({...data, headline: e.target.value})} 
-                  className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] placeholder:text-[#32213A]/20" 
+                  className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A]" 
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Reason (Actual Text)</label>
-                <p className="p-3 bg-white border-2 border-[#32213A] rounded-xl text-xs text-[#32213A] italic leading-tight">"{data.reason || rawText}"</p>
+                <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Reflection Content</label>
+                <p className="p-4 bg-white border-2 border-[#32213A] rounded-2xl text-xs text-[#32213A] italic leading-relaxed">"{data.reason || rawText}"</p>
               </div>
             </div>
           )}
 
-          {/* EXPENSE: Details auto-populated */}
           {intent === 'EXPENSE' && (
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Amount ({data.currency})</label>
-                <input type="number" value={data.amount || 0} onChange={e => setData({...data, amount: parseFloat(e.target.value)})} className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-2xl font-black text-[#32213A]" />
+                <input type="number" value={data.amount || 0} onChange={e => setData({...data, amount: parseFloat(e.target.value)})} className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-2xl font-black text-[#32213A]" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Category</label>
-                <select value={data.category || 'Others'} onChange={e => setData({...data, category: e.target.value})} className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] appearance-none">
+                <select value={data.category || 'Others'} onChange={e => setData({...data, category: e.target.value})} className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] appearance-none">
                   {expenseCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Details</label>
-                <p className="p-3 bg-white border-2 border-[#32213A] rounded-xl text-xs text-[#32213A] leading-tight">"{data.details || rawText}"</p>
+                <p className="p-4 bg-white border-2 border-[#32213A] rounded-2xl text-xs text-[#32213A] leading-tight">"{data.details || rawText}"</p>
               </div>
             </div>
           )}
 
-          {/* TODO: Headline and Details auto-populated */}
           {intent === 'TODO' && (
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Headline</label>
                 <input 
                   type="text" 
-                  value={data.headline || ''} 
-                  placeholder="AI generating task title..."
+                  value={data.headline} 
                   onChange={e => setData({...data, headline: e.target.value})} 
-                  className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] placeholder:text-[#32213A]/20" 
+                  className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A]" 
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Priority</label>
                 <div className="flex gap-2">
                   {['low', 'medium', 'high'].map(p => (
-                    <button key={p} onClick={() => setData({...data, priority: p})} className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase border-2 transition-all ${data.priority === p ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}>{p}</button>
+                    <button key={p} onClick={() => setData({...data, priority: p})} className={`flex-1 py-3 rounded-2xl text-[9px] font-black uppercase border-2 transition-all ${data.priority === p ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}>{p}</button>
                   ))}
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Details</label>
-                <p className="p-3 bg-white border-2 border-[#32213A] rounded-xl text-xs text-[#32213A] italic">"{data.details || rawText}"</p>
+                <p className="p-4 bg-white border-2 border-[#32213A] rounded-2xl text-xs text-[#32213A] italic">"{data.details || rawText}"</p>
               </div>
             </div>
           )}
@@ -144,11 +138,11 @@ export const ConfirmView: React.FC<ConfirmViewProps> = ({ intent, rawText, entit
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Details</label>
-                <textarea value={data.details || rawText} onChange={e => setData({...data, details: e.target.value})} className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] resize-none h-24" />
+                <textarea value={data.details || rawText} onChange={e => setData({...data, details: e.target.value})} className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] resize-none h-24" />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Target Date</label>
-                <input type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A]" />
+                <input type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A]" />
               </div>
             </div>
           )}
@@ -157,7 +151,7 @@ export const ConfirmView: React.FC<ConfirmViewProps> = ({ intent, rawText, entit
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Text</label>
-                <textarea value={data.text || rawText} onChange={e => setData({...data, text: e.target.value})} className="w-full bg-[#D4D6B9]/10 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] resize-none h-32" />
+                <textarea value={data.text || rawText} onChange={e => setData({...data, text: e.target.value})} className="w-full bg-[#32213A]/5 border-2 border-[#32213A] rounded-2xl px-4 py-3 text-sm font-black text-[#32213A] resize-none h-32" />
               </div>
             </div>
           )}

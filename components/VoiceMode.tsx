@@ -156,17 +156,26 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Using gemini-3-flash-preview as requested for speed and efficiency
+      // Optimized for speed and creative extraction on Flash
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', 
         contents: [{
           parts: [{
-            text: `Input: "${textToProcess}"
-            System Time: ${today}
-            
-            Extract context. Be creative with vibes and headlines. 
-            Vibe must be a single evocative word. 
-            Headline must be a sharp summary.`
+            text: `System: You are Aura, a high-end emotional mapping AI. 
+            User Input: "${textToProcess}"
+            Date: ${today}
+
+            MISSION:
+            1. Determine Intent: MOOD, EXPENSE, TODO, REMINDER, or NOTE.
+            2. MANDATORY GENERATION (NEVER NULL):
+               - 'vibe': A single, evocative emotional word. If the user says "I feel good", vibe could be "Radiant" or "Serene". Be descriptive.
+               - 'headline': A sharp, creative 3-5 word summary of the entry. 
+               
+            Example Mapping:
+            Input: "I'm exhausted from work" -> vibe: "Drained", headline: "Workload Impact Assessment"
+            Input: "I feel great today" -> vibe: "Radiant", headline: "Positive Energy Surge"
+            Input: "Bought coffee for 200" -> vibe: "Casual", headline: "Caffeine Refuel"
+            `
           }]
         }],
         config: { 
@@ -174,24 +183,21 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              intent: { 
-                type: Type.STRING, 
-                description: 'EXPENSE, TODO, REMINDER, MOOD, or NOTE' 
-              },
+              intent: { type: Type.STRING },
               entities: {
                 type: Type.OBJECT,
                 properties: {
-                  vibe: { type: Type.STRING, description: '1-word emotional state for MOOD' },
-                  headline: { type: Type.STRING, description: '3-5 word summary for MOOD/TODO' },
-                  reason: { type: Type.STRING, description: 'Original text for MOOD' },
-                  amount: { type: Type.NUMBER, description: 'Cost for EXPENSE' },
-                  category: { type: Type.STRING, description: 'Expense category' },
-                  details: { type: Type.STRING, description: 'Full context description' },
-                  currency: { type: Type.STRING, description: 'Default INR' },
-                  date: { type: Type.STRING, description: 'Target date YYYY-MM-DD' },
-                  priority: { type: Type.STRING, description: 'high/medium/low' },
-                  text: { type: Type.STRING, description: 'Body for NOTE' }
-                }
+                  vibe: { type: Type.STRING, description: "Mandatory 1-word emotion" },
+                  headline: { type: Type.STRING, description: "Mandatory 3-5 word title" },
+                  reason: { type: Type.STRING, description: "The original input text" },
+                  amount: { type: Type.NUMBER },
+                  category: { type: Type.STRING },
+                  details: { type: Type.STRING },
+                  date: { type: Type.STRING },
+                  priority: { type: Type.STRING },
+                  text: { type: Type.STRING }
+                },
+                required: ['vibe', 'headline']
               }
             },
             required: ['intent', 'entities']
@@ -207,14 +213,7 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
       });
     } catch (apiErr: any) {
       console.error("[AURA] Extraction error:", apiErr);
-      const is429 = apiErr.message?.includes('429') || apiErr.status === 429;
-      if (is429) {
-         setIsQuotaError(true);
-         setCooldownSeconds(30);
-         setErrorMessage("API Busy. Please wait.");
-      } else {
-         setErrorMessage("Sync Failed. Please retry.");
-      }
+      setErrorMessage("Sync Failed. Please retry.");
       setIsProcessing(false);
     }
   };
@@ -243,27 +242,16 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
           
           {errorMessage ? (
             <div className="absolute inset-0 m-auto flex flex-col items-center justify-center p-8 bg-white border-4 border-[#32213A] rounded-[3rem] shadow-[12px_12px_0px_#32213A] max-w-xs h-fit animate-in zoom-in duration-300">
-              <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mb-4 text-rose-500">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-              </div>
-              <p className="text-[#32213A] text-xs font-black uppercase tracking-widest mb-1">{errorMessage}</p>
-              {isQuotaError && cooldownSeconds > 0 && (
-                <p className="text-[#32213A]/60 text-[8px] font-black uppercase tracking-widest mb-6">Text limits reset in {cooldownSeconds}s</p>
-              )}
+              <p className="text-[#32213A] text-xs font-black uppercase tracking-widest mb-4">{errorMessage}</p>
               <button 
-                disabled={cooldownSeconds > 0}
                 onClick={startVoiceCapture} 
-                className={`w-full py-4 rounded-2xl text-[10px] uppercase tracking-widest font-black transition-all
-                  ${cooldownSeconds > 0 
-                    ? 'bg-[#32213A]/10 text-[#32213A]/20' 
-                    : 'bg-[#32213A] text-white neo-pop-shadow'}`}
+                className="w-full py-4 bg-[#32213A] text-white rounded-2xl text-[10px] uppercase tracking-widest font-black neo-pop-shadow"
               >
-                {cooldownSeconds > 0 ? `Wait (${cooldownSeconds}s)` : "Retry Voice Capture"}
+                Retry
               </button>
             </div>
           ) : (
             <button 
-              disabled={cooldownSeconds > 0}
               onClick={isRecording ? stopVoiceCapture : startVoiceCapture}
               className={`absolute inset-0 m-auto w-32 h-32 rounded-full border-8 border-white flex items-center justify-center transition-all
                 ${isRecording ? 'bg-red-500 shadow-2xl scale-110' : 'bg-[#32213A] shadow-xl active:scale-95'}`}
@@ -278,12 +266,8 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
         </div>
 
         <div className="max-w-xs mx-auto">
-          <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">
-            Intelligence Active
-          </p>
-          <p className="text-[14px] font-black text-[#32213A]/60 leading-tight">
-            {isRecording ? "Listening to your thoughts..." : "Flash Summaries and Vibes are generated automatically."}
-          </p>
+          <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">Intelligence Active</p>
+          <p className="text-[14px] font-black text-[#32213A]/60">Your reflection is being mapped in real-time.</p>
         </div>
       </div>
     </div>
