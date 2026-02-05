@@ -1,0 +1,7 @@
+{
+  "name": "Aura - Privacy-First Voice Assistant",
+  "description": "A high-end, voice-first personal assistant that uses Gemini Live API to convert natural language into structured productivity data while maintaining strict privacy.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

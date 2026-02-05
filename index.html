@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Aura Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --midnight-violet: #32213A;
+            --space-indigo: #383B53;
+            --blue-slate: #66717E;
+            --sand-dune: #D4D6B9;
+            --dry-sage: #D1CAA1;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--sand-dune);
+            color: var(--midnight-violet);
+            overflow: hidden;
+            margin: 0;
+            height: 100vh;
+            height: -webkit-fill-available;
+        }
+        .neo-pop-shadow {
+            filter: drop-shadow(4px 4px 0px var(--midnight-violet));
+        }
+        .neo-pop-button {
+            background: white;
+            border: 3px solid var(--midnight-violet);
+            box-shadow: 4px 4px 0px var(--midnight-violet);
+            transition: all 0.1s ease;
+        }
+        .neo-pop-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px var(--midnight-violet);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        #root {
+            height: 100vh;
+            height: -webkit-fill-available;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0"
+  }
+}
+</script>
+</head>
+<body class="h-screen w-screen overflow-hidden select-none">
+    <div id="root"></div>
+</body>
+</html>
