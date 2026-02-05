@@ -58,7 +58,7 @@ const NeoPopIcon = ({ type, className, colorOverride }: { type: string, classNam
 export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, tasks, moods, onViewHistory, onVoiceSuccess, isProcessing: externalProcessing }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [internalProcessing, setInternalProcessing] = useState(false);
-  const [errorStatus, setErrorStatus] = useState<{message: string, cooldown: number, draft?: string} | null>(null);
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [transcript, setTranscript] = useState("");
   
   const recognitionRef = useRef<any>(null);
@@ -72,6 +72,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   const totalSpend = useMemo(() => expenses.reduce((sum, exp) => sum + exp.amount, 0), [expenses]);
   const currentMoodText = useMemo(() => moods.length > 0 ? moods[0].sentiment : 'Neutral', [moods]);
   const recentEntries = useMemo(() => voiceEntries.slice(0, 5), [voiceEntries]);
+
+  useEffect(() => {
+    if (errorStatus) {
+      const timer = setTimeout(() => setErrorStatus(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorStatus]);
 
   const initVisualizer = async () => {
     try {
@@ -109,9 +116,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   const startVoice = async () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      setErrorStatus("BROWSER NOT SUPPORTED");
+      return;
+    }
     const stream = await initVisualizer();
-    if (!stream) return;
+    if (!stream) {
+      setErrorStatus("MICROPHONE DENIED");
+      return;
+    }
     
     setIsRecording(true);
     setTranscript("");
@@ -151,6 +164,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   const processText = async (text: string) => {
     if (isApiInFlight.current) return;
+    
+    if (!process.env.API_KEY) {
+      console.error("[AURA] Missing API Key");
+      setErrorStatus("MISSING API KEY");
+      return;
+    }
+
     isApiInFlight.current = true;
     setInternalProcessing(true);
     const today = new Date().toISOString().split('T')[0];
@@ -163,8 +183,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
           parts: [{
             text: `System: Aura Intelligence Engine. Analyze: "${text}". Date: ${today}.
             Classify: EXPENSE, TODO, REMINDER, MOOD, or NOTE.
-            MANDATORY: 1-word 'vibe' and 3-5 word 'headline' for ALL inputs.
-            Example: "Feeling tired" -> vibe: "Drained", headline: "Daily Energy Assessment"`
+            MANDATORY: 1-word 'vibe' and 3-5 word 'headline' for ALL inputs.`
           }]
         }],
         config: { 
@@ -196,9 +215,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
       const result = JSON.parse(response.text || '{}');
       onVoiceSuccess({ rawText: text, intent: result.intent || 'NOTE', entities: result.entities || {} });
-    } catch (e) {
+    } catch (e: any) {
       console.error("[AURA] Sync error:", e);
-      setErrorStatus({ message: "SYNC ERROR", cooldown: 3, draft: text });
+      setErrorStatus(e.message?.includes('401') ? "INVALID API KEY" : "SYNC FAILED");
     } finally {
       isApiInFlight.current = false;
       setInternalProcessing(false);
@@ -219,6 +238,27 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   return (
     <div className="flex-1 flex flex-col h-full relative overflow-hidden px-5 pb-5 bg-[#D4D6B9] font-black">
+      {/* Error Toast */}
+      {errorStatus && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[300] animate-slide-up">
+           <div className="bg-[#32213A] text-rose-400 border-4 border-rose-400 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-[8px_8px_0px_#32213A]">
+              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <span className="text-[10px] font-black uppercase tracking-widest">{errorStatus}</span>
+           </div>
+        </div>
+      )}
+
+      {/* Sync Overlay */}
+      {isBusy && (
+        <div className="fixed inset-0 z-[250] bg-[#32213A]/60 backdrop-blur-sm flex items-center justify-center p-8 text-center">
+           <div className="bg-white border-4 border-[#32213A] rounded-[3rem] p-10 neo-pop-shadow max-w-xs w-full animate-in zoom-in duration-300">
+              <div className="w-16 h-16 border-8 border-[#32213A] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <h2 className="text-xl font-black text-[#32213A] uppercase tracking-tighter mb-2">Syncing Aura</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#32213A]/40 leading-relaxed">Processing your words into structured intelligence...</p>
+           </div>
+        </div>
+      )}
+
       <header className="shrink-0 pt-8 pb-6 flex justify-between items-start z-50">
         <div className="text-left">
           <h1 className="text-4xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
@@ -245,8 +285,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
                 >
                   {isRecording ? (
                     <div className="w-4 h-4 bg-white rounded-sm animate-pulse"></div>
-                  ) : isBusy ? (
-                    <div className="w-4 h-4 border-4 border-t-transparent border-[#32213A] rounded-full animate-spin"></div>
                   ) : (
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                   )}

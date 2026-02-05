@@ -34,10 +34,22 @@
             height: 100vh;
             height: -webkit-fill-available;
         }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
     </style>
     <script>
-        // Ensure process.env exists in the browser to prevent crashes
-        window.process = { env: {} };
+        // Safer shim: only define if not present
+        if (typeof window.process === 'undefined') {
+            window.process = { env: {} };
+        } else if (typeof window.process.env === 'undefined') {
+            window.process.env = {};
+        }
     </script>
 <script type="importmap">
 {
