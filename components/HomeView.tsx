@@ -140,7 +140,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
       for (let i = 0; i < event.results.length; i++) {
         current += event.results[i][0].transcript;
       }
-      setTranscript(current);
+      // Note: We no longer call setTranscript(current) here to satisfy the requirement
+      // that transcription should only happen after stop recording.
       transcriptRef.current = current;
     };
 
@@ -165,12 +166,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   const processText = async (text: string) => {
     if (isApiInFlight.current) return;
     
-    if (!process.env.API_KEY) {
-      console.error("[AURA] Missing API Key");
-      setErrorStatus("MISSING API KEY");
-      return;
-    }
-
     isApiInFlight.current = true;
     setInternalProcessing(true);
     const today = new Date().toISOString().split('T')[0];
@@ -342,7 +337,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden text-left">
         <div className="flex justify-between items-center mb-3 px-1">
           <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40">My Thoughts</h3>
-          {isRecording && <span className="text-[8px] text-red-500 animate-pulse uppercase tracking-widest">Capturing Audio...</span>}
+          {isRecording && <span className="text-[8px] text-red-500 animate-pulse uppercase tracking-widest">Recording...</span>}
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-1 pb-4">
           {recentEntries.length === 0 ? (
@@ -365,9 +360,9 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       </div>
 
-      {isRecording && transcript && (
-        <div className="absolute bottom-10 left-10 right-10 p-6 bg-white border-4 border-[#32213A] rounded-[2rem] shadow-[8px_8px_0px_#32213A] z-[100] animate-in fade-in slide-in-from-bottom-5">
-           <p className="text-xs font-black italic text-[#32213A] leading-snug break-words">"{transcript}..."</p>
+      {isRecording && (
+        <div className="absolute bottom-10 left-10 right-10 p-6 bg-white border-4 border-[#32213A] rounded-[2rem] shadow-[8px_8px_0px_#32213A] z-[100] animate-in fade-in slide-in-from-bottom-5 text-center">
+           <p className="text-xs font-black italic text-[#32213A] leading-snug">Listening carefully...</p>
         </div>
       )}
     </div>

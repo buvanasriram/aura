@@ -16,7 +16,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState("");
   
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef("");
@@ -80,7 +79,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
       for (let i = 0; i < event.results.length; ++i) {
         current += event.results[i][0].transcript;
       }
-      setTranscript(current);
       transcriptRef.current = current;
     };
 
@@ -174,9 +172,9 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
       </header>
 
       <div className="flex-1 flex flex-col justify-center items-center text-center z-10">
-        <div className={`w-full max-w-sm mb-12 min-h-[120px] flex items-center justify-center transition-all duration-500 overflow-hidden ${isRecording || transcript ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-          <p className="text-[#32213A] text-lg font-black leading-tight italic px-4 break-words">
-             {transcript || (isRecording ? "Listening..." : "")}
+        <div className={`w-full max-w-sm mb-12 min-h-[120px] flex items-center justify-center transition-all duration-500 overflow-hidden ${isRecording ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          <p className="text-[#32213A] text-2xl font-black leading-tight italic px-4 uppercase tracking-tighter">
+             {isRecording ? "Listening..." : ""}
           </p>
         </div>
 
@@ -204,8 +202,8 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
         </div>
 
         <div className="max-w-xs mx-auto">
-          <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">Sync Engine Active</p>
-          <p className="text-[14px] font-black text-[#32213A]/60">Your words are being organized into structured data.</p>
+          <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">Intelligence Engine</p>
+          <p className="text-[14px] font-black text-[#32213A]/60">Speech recognition will finalize after you stop speaking.</p>
         </div>
       </div>
     </div>
