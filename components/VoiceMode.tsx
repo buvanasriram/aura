@@ -16,25 +16,12 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isQuotaError, setIsQuotaError] = useState(false);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [transcript, setTranscript] = useState("");
   
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-
-  useEffect(() => {
-    let timer: number;
-    if (cooldownSeconds > 0) {
-      timer = window.setInterval(() => {
-        setCooldownSeconds(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [cooldownSeconds]);
 
   const initVisualizer = async () => {
     try {
@@ -45,20 +32,15 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
       source.connect(analyser);
       analyser.fftSize = 64;
       
-      audioContextRef.current = audioCtx;
-      analyserRef.current = analyser;
-
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       const draw = () => {
-        if (!canvasRef.current || !analyserRef.current) return;
+        if (!canvasRef.current) return;
         animationFrameRef.current = requestAnimationFrame(draw);
-        analyserRef.current.getByteFrequencyData(dataArray);
-        
+        analyser.getByteFrequencyData(dataArray);
         const ctx = canvasRef.current.getContext('2d')!;
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         const centerX = canvasRef.current.width / 2;
         const centerY = canvasRef.current.height / 2;
-        
         ctx.beginPath();
         for (let i = 0; i < dataArray.length; i++) {
           const barHeight = (dataArray[i] / 255) * 100;
@@ -73,29 +55,15 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
       };
       draw();
       return stream;
-    } catch (e) {
-      console.error("[AURA] Visualizer error:", e);
-      return null;
-    }
+    } catch (e) { return null; }
   };
 
   const startVoiceCapture = async () => {
-    if (cooldownSeconds > 0) return;
-    setErrorMessage(null);
-    setIsQuotaError(false);
-    setTranscript("");
-    
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setErrorMessage("Voice Recognition not supported on this browser.");
-      return;
-    }
+    if (!SpeechRecognition) return;
 
     const stream = await initVisualizer();
-    if (!stream) {
-      setErrorMessage("Microphone access denied.");
-      return;
-    }
+    if (!stream) return;
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-IN'; 
@@ -108,33 +76,21 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     };
 
     recognition.onresult = (event: any) => {
-      let finalTranscript = "";
-      let interimTranscript = "";
+      let current = "";
       for (let i = 0; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
-        }
+        current += event.results[i][0].transcript;
       }
-      setTranscript(finalTranscript + interimTranscript);
-    };
-
-    recognition.onerror = (err: any) => {
-      if (err.error !== 'no-speech') {
-        setErrorMessage("Speech capture interrupted.");
-        stopVoiceCapture();
-      }
+      setTranscript(current);
+      transcriptRef.current = current;
     };
 
     recognition.onend = () => {
-      if (isRecording) {
-        if (transcript.trim().length > 0) {
-          processText(transcript);
-        } else {
-          setIsRecording(false);
-          setStatus("Tap to Begin");
-        }
+      const finalResult = transcriptRef.current.trim();
+      setIsRecording(false);
+      if (finalResult.length > 0) {
+        processText(finalResult);
+      } else {
+        setStatus("Tap to Begin");
       }
     };
 
@@ -146,7 +102,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-    setIsRecording(false);
   };
 
   const processText = async (textToProcess: string) => {
@@ -156,26 +111,14 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Optimized for speed and creative extraction on Flash
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', 
         contents: [{
           parts: [{
-            text: `System: You are Aura, a high-end emotional mapping AI. 
-            User Input: "${textToProcess}"
+            text: `System: Aura High-End Emotional Analyst. Analyze: "${textToProcess}".
             Date: ${today}
-
-            MISSION:
-            1. Determine Intent: MOOD, EXPENSE, TODO, REMINDER, or NOTE.
-            2. MANDATORY GENERATION (NEVER NULL):
-               - 'vibe': A single, evocative emotional word. If the user says "I feel good", vibe could be "Radiant" or "Serene". Be descriptive.
-               - 'headline': A sharp, creative 3-5 word summary of the entry. 
-               
-            Example Mapping:
-            Input: "I'm exhausted from work" -> vibe: "Drained", headline: "Workload Impact Assessment"
-            Input: "I feel great today" -> vibe: "Radiant", headline: "Positive Energy Surge"
-            Input: "Bought coffee for 200" -> vibe: "Casual", headline: "Caffeine Refuel"
-            `
+            Rule: MUST generate 'vibe' (1 word) and 'headline' (3-5 words) for EVERY input.
+            Mapping Example: "Had a coffee" -> vibe: "Content", headline: "Quiet Morning Ritual"`
           }]
         }],
         config: { 
@@ -187,9 +130,9 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
               entities: {
                 type: Type.OBJECT,
                 properties: {
-                  vibe: { type: Type.STRING, description: "Mandatory 1-word emotion" },
-                  headline: { type: Type.STRING, description: "Mandatory 3-5 word title" },
-                  reason: { type: Type.STRING, description: "The original input text" },
+                  vibe: { type: Type.STRING, description: "Mandatory vibe word" },
+                  headline: { type: Type.STRING, description: "Mandatory headline" },
+                  reason: { type: Type.STRING },
                   amount: { type: Type.NUMBER },
                   category: { type: Type.STRING },
                   details: { type: Type.STRING },
@@ -212,7 +155,7 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
         entities: result.entities || {}
       });
     } catch (apiErr: any) {
-      console.error("[AURA] Extraction error:", apiErr);
+      console.error("[AURA] API error:", apiErr);
       setErrorMessage("Sync Failed. Please retry.");
       setIsProcessing(false);
     }
@@ -241,14 +184,9 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
           <canvas ref={canvasRef} width={400} height={400} className={`w-64 h-64 transition-opacity duration-500 ${isRecording ? 'opacity-100' : 'opacity-5'}`} />
           
           {errorMessage ? (
-            <div className="absolute inset-0 m-auto flex flex-col items-center justify-center p-8 bg-white border-4 border-[#32213A] rounded-[3rem] shadow-[12px_12px_0px_#32213A] max-w-xs h-fit animate-in zoom-in duration-300">
+            <div className="absolute inset-0 m-auto flex flex-col items-center justify-center p-8 bg-white border-4 border-[#32213A] rounded-[3rem] shadow-[12px_12px_0px_#32213A] max-w-xs h-fit">
               <p className="text-[#32213A] text-xs font-black uppercase tracking-widest mb-4">{errorMessage}</p>
-              <button 
-                onClick={startVoiceCapture} 
-                className="w-full py-4 bg-[#32213A] text-white rounded-2xl text-[10px] uppercase tracking-widest font-black neo-pop-shadow"
-              >
-                Retry
-              </button>
+              <button onClick={startVoiceCapture} className="w-full py-4 bg-[#32213A] text-white rounded-2xl text-[10px] uppercase tracking-widest font-black neo-pop-shadow">Retry</button>
             </div>
           ) : (
             <button 
@@ -266,8 +204,8 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
         </div>
 
         <div className="max-w-xs mx-auto">
-          <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">Intelligence Active</p>
-          <p className="text-[14px] font-black text-[#32213A]/60">Your reflection is being mapped in real-time.</p>
+          <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">Sync Engine Active</p>
+          <p className="text-[14px] font-black text-[#32213A]/60">Your words are being organized into structured data.</p>
         </div>
       </div>
     </div>

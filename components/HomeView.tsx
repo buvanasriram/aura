@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Expense, VoiceEntry, Task, MoodRecord, IntentType } from '../types';
+import { GoogleGenAI, Type } from '@google/genai';
 
 interface HomeViewProps {
   expenses: Expense[];
@@ -57,16 +58,12 @@ const NeoPopIcon = ({ type, className, colorOverride }: { type: string, classNam
 export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, tasks, moods, onViewHistory, onVoiceSuccess, isProcessing: externalProcessing }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [internalProcessing, setInternalProcessing] = useState(false);
-  const [errorStatus, setErrorStatus] = useState<{message: string, cooldown: number, draft?: string} | null>(() => {
-    const savedDraft = localStorage.getItem('aura_pending_draft');
-    return savedDraft ? { message: "DRAFT RECOVERED", cooldown: 0, draft: savedDraft } : null;
-  });
+  const [errorStatus, setErrorStatus] = useState<{message: string, cooldown: number, draft?: string} | null>(null);
   const [transcript, setTranscript] = useState("");
   
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef("");
   const isApiInFlight = useRef(false);
-  const lastRequestTime = useRef<number>(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number>(0);
 
@@ -75,18 +72,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   const totalSpend = useMemo(() => expenses.reduce((sum, exp) => sum + exp.amount, 0), [expenses]);
   const currentMoodText = useMemo(() => moods.length > 0 ? moods[0].sentiment : 'Neutral', [moods]);
   const recentEntries = useMemo(() => voiceEntries.slice(0, 5), [voiceEntries]);
-
-  useEffect(() => {
-    if (!errorStatus || errorStatus.cooldown <= 0) return;
-    const timer = window.setInterval(() => {
-      setErrorStatus(prev => {
-        if (!prev) return null;
-        if (prev.cooldown <= 1) return { ...prev, cooldown: 0 };
-        return { ...prev, cooldown: prev.cooldown - 1 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [errorStatus?.cooldown]);
 
   const initVisualizer = async () => {
     try {
@@ -123,67 +108,97 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   };
 
   const startVoice = async () => {
-    if (isApiInFlight.current || internalProcessing) return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const stream = await initVisualizer();
     if (!stream) return;
+    
     setIsRecording(true);
+    setTranscript("");
+    transcriptRef.current = "";
+    
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-IN';
     recognition.continuous = true;
     recognition.interimResults = true;
+    
     recognition.onresult = (event: any) => {
-      let final = "";
+      let current = "";
       for (let i = 0; i < event.results.length; i++) {
-        final += event.results[i][0].transcript;
+        current += event.results[i][0].transcript;
       }
-      setTranscript(final);
-      transcriptRef.current = final;
+      setTranscript(current);
+      transcriptRef.current = current;
     };
-    recognition.onend = () => stopVoice("AUTO");
+
+    recognition.onend = () => {
+      const finalResult = transcriptRef.current.trim();
+      setIsRecording(false);
+      if (finalResult.length > 1) {
+        processText(finalResult);
+      }
+    };
+
     recognitionRef.current = recognition;
     recognition.start();
   };
 
-  const stopVoice = (trigger: string = "USER") => {
-    setIsRecording(false);
+  const stopVoice = () => {
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch(e) {}
-      recognitionRef.current = null;
+      recognitionRef.current.stop();
     }
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    const capturedText = transcriptRef.current.trim();
-    if (capturedText.length > 2) processText(capturedText);
-    setTranscript("");
-    transcriptRef.current = "";
   };
 
   const processText = async (text: string) => {
-    const now = Date.now();
     if (isApiInFlight.current) return;
-    if (now - lastRequestTime.current < 8000) {
-      setErrorStatus({ message: "COOLDOWN", cooldown: 5, draft: text });
-      return;
-    }
     isApiInFlight.current = true;
-    lastRequestTime.current = now;
     setInternalProcessing(true);
+    const today = new Date().toISOString().split('T')[0];
+
     try {
-      const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Process Text: "${text}"`,
+        contents: [{
+          parts: [{
+            text: `System: Aura Intelligence Engine. Analyze: "${text}". Date: ${today}.
+            Classify: EXPENSE, TODO, REMINDER, MOOD, or NOTE.
+            MANDATORY: 1-word 'vibe' and 3-5 word 'headline' for ALL inputs.
+            Example: "Feeling tired" -> vibe: "Drained", headline: "Daily Energy Assessment"`
+          }]
+        }],
         config: { 
-          systemInstruction: `Extract JSON. Keys: intent (EXPENSE|TODO|REMINDER|MOOD), entities (amount, category, title, sentiment).`,
-          responseMimeType: 'application/json'
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              intent: { type: Type.STRING },
+              entities: {
+                type: Type.OBJECT,
+                properties: {
+                  vibe: { type: Type.STRING },
+                  headline: { type: Type.STRING },
+                  reason: { type: Type.STRING },
+                  amount: { type: Type.NUMBER },
+                  category: { type: Type.STRING },
+                  details: { type: Type.STRING },
+                  date: { type: Type.STRING },
+                  priority: { type: Type.STRING },
+                  text: { type: Type.STRING }
+                },
+                required: ['vibe', 'headline']
+              }
+            },
+            required: ['intent', 'entities']
+          }
         }
       });
+
       const result = JSON.parse(response.text || '{}');
       onVoiceSuccess({ rawText: text, intent: result.intent || 'NOTE', entities: result.entities || {} });
     } catch (e) {
-      setErrorStatus({ message: "SYNC ERROR", cooldown: 5, draft: text });
+      console.error("[AURA] Sync error:", e);
+      setErrorStatus({ message: "SYNC ERROR", cooldown: 3, draft: text });
     } finally {
       isApiInFlight.current = false;
       setInternalProcessing(false);
@@ -204,7 +219,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   return (
     <div className="flex-1 flex flex-col h-full relative overflow-hidden px-5 pb-5 bg-[#D4D6B9] font-black">
-      {/* Header - Smart Assist */}
       <header className="shrink-0 pt-8 pb-6 flex justify-between items-start z-50">
         <div className="text-left">
           <h1 className="text-4xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
@@ -226,8 +240,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
                   onClick={() => isRecording ? stopVoice() : startVoice()}
                   disabled={isBusy}
                   className={`w-full h-full rounded-xl border-4 border-[#32213A] flex items-center justify-center transition-all neo-pop-shadow relative z-10
-                    ${isRecording ? 'bg-rose-500 text-white translate-y-1 shadow-none' : 'bg-white text-[#32213A] active:scale-95'}
-                    ${isBusy ? 'opacity-40 grayscale' : ''}`}
+                    ${isRecording ? 'bg-red-500 text-white translate-y-1 shadow-none' : 'bg-white text-[#32213A] active:scale-95'}
+                    ${isBusy ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
                 >
                   {isRecording ? (
                     <div className="w-4 h-4 bg-white rounded-sm animate-pulse"></div>
@@ -239,13 +253,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
                 </button>
             </div>
           </div>
-          <span className={`text-[7px] font-black uppercase tracking-widest text-center leading-tight ${isRecording ? 'text-rose-500 animate-pulse' : 'text-[#32213A]/30'}`}>
+          <span className={`text-[7px] font-black uppercase tracking-widest text-center leading-tight ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#32213A]/30'}`}>
             {isRecording ? "Listening" : "System Ready"}
           </span>
         </div>
       </header>
 
-      {/* Alerts Area - Clean Aesthetic, No Border/Shadow */}
       {upcomingAlerts.length > 0 && (
         <div className="mb-4 shrink-0 space-y-2 text-left">
            <h3 className="text-[8px] font-black uppercase tracking-[0.3em] text-[#32213A]/40 px-2">Upcoming Alerts</h3>
@@ -260,7 +273,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       )}
 
-      {/* Expenses Card - No Border/Shadow */}
       <div className="mb-4 shrink-0 p-5 bg-white rounded-[2.5rem] flex items-center justify-between">
         <div className="flex items-center gap-4">
           <NeoPopIcon type="CASH" className="w-12 h-12" colorOverride="#ADF7B6" />
@@ -271,7 +283,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       </div>
 
-      {/* Stats Section - Keep borders for icons/divider to maintain style */}
       <div className="shrink-0 flex justify-around items-center py-4 mb-4 border-y-4 border-[#32213A]/10">
         <div className="flex items-center gap-3 text-left">
           <NeoPopIcon type="TASKS" className="w-8 h-8" colorOverride="#ADD2C2" />
@@ -290,9 +301,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       </div>
 
-      {/* My Thoughts - Sharp edges, minimal padding, no bold body text */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden text-left">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-3 px-1">My Thoughts</h3>
+        <div className="flex justify-between items-center mb-3 px-1">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40">My Thoughts</h3>
+          {isRecording && <span className="text-[8px] text-red-500 animate-pulse uppercase tracking-widest">Capturing Audio...</span>}
+        </div>
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-1 pb-4">
           {recentEntries.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center border-4 border-dashed border-[#32213A]/10 rounded-none">
@@ -313,6 +326,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
           )}
         </div>
       </div>
+
+      {isRecording && transcript && (
+        <div className="absolute bottom-10 left-10 right-10 p-6 bg-white border-4 border-[#32213A] rounded-[2rem] shadow-[8px_8px_0px_#32213A] z-[100] animate-in fade-in slide-in-from-bottom-5">
+           <p className="text-xs font-black italic text-[#32213A] leading-snug break-words">"{transcript}..."</p>
+        </div>
+      )}
     </div>
   );
 };
