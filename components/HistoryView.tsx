@@ -20,21 +20,28 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
     case 'EXPENSE': 
       return (
         <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" fill="#FF5F5F" stroke="#32213A" strokeWidth="2.5"/>
-          <path d="M12 7V17M7 12H17" stroke="#32213A" strokeWidth="3" strokeLinecap="round"/>
+          <rect x="3" y="6" width="18" height="12" rx="4" fill="#ADF7B6" stroke="#32213A" strokeWidth="2.5"/>
+          <circle cx="12" cy="12" r="3" fill="white" stroke="#32213A" strokeWidth="2"/>
+        </svg>
+      );
+    case 'REMINDER':
+      return (
+        <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18 8C18 4.68629 15.3137 2 12 2C8.68629 2 6 4.68629 6 8V11C6 11.6644 5.71554 12.2961 5.21115 12.7334C4.43632 13.4063 4 14.3828 4 15.4118V16C4 16.5523 4.44772 17 5 17H19C19.5523 17 20 16.5523 20 16V15.4118C20 14.3828 19.5637 13.4063 18.7889 12.7334C18.2845 12.2961 18 11.6644 18 11V8Z" fill="#F7EF81" stroke="#32213A" strokeWidth="2.5"/>
+          <path d="M10 19C10 20.1046 10.8954 21 12 21C13.1046 21 14 20.1046 14 19" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       );
     case 'TODO':
       return (
         <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="4" width="16" height="16" rx="3" fill="#4ADE80" stroke="#32213A" strokeWidth="2.5"/>
+          <rect x="4" y="4" width="16" height="16" rx="3" fill="#ADD2C2" stroke="#32213A" strokeWidth="2.5"/>
           <path d="M8 12L11 15L16 9" stroke="#32213A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       );
     case 'MOOD':
       return (
         <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" fill="#F472B6" stroke="#32213A" strokeWidth="2.5"/>
+          <circle cx="12" cy="12" r="9" fill="#B892FF" stroke="#32213A" strokeWidth="2.5"/>
           <path d="M7 12L9 12L11 8L13 16L15 12L17 12" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       );
@@ -52,9 +59,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
       ? entries 
       : entries.filter(e => e.intent === filter);
   }, [entries, filter]);
-
-  const getExpenseForEntry = (entryId: string) => expenses.find(exp => exp.entryId === entryId);
-  const getMoodForEntry = (entryId: string) => moods.find(m => m.entryId === entryId);
 
   const analytics = useMemo(() => {
     const now = new Date();
@@ -77,28 +81,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
       return acc;
     }, {});
 
-    const topCategory = Object.entries(categoryBreakdown)
-      .sort(([, a]: any, [, b]: any) => b - a)[0];
-
-    const moodsSummary = moods.reduce((acc: any, m) => {
-      acc[m.sentiment] = (acc[m.sentiment] || 0) + 1;
-      return acc;
-    }, {});
-
-    const taskStats = {
-      total: tasks.length,
-      completed: tasks.filter(t => t.completed).length,
-      highPriority: tasks.filter(t => t.priority === 'high' && !t.completed).length
-    };
-
-    return { monthlyBurn, dailyAvg, topCategory, moodsSummary, taskStats, categoryBreakdown };
-  }, [expenses, moods, tasks]);
+    return { monthlyBurn, dailyAvg, categoryBreakdown };
+  }, [expenses]);
 
   return (
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#D4D6B9]">
-      {/* Top Header */}
       <header className="px-6 py-8 flex justify-between items-center">
-        <div>
+        <div className="text-left">
           <h2 className="text-3xl font-black tracking-tighter text-[#32213A]">Vault</h2>
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40">Persistent Data</p>
         </div>
@@ -112,7 +101,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
         </div>
       </header>
 
-      {/* Tab Selector */}
       <div className="flex px-6 gap-4 mb-6">
         <button 
           onClick={() => setMode('INTELLIGENCE')}
@@ -130,21 +118,19 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-12">
         {mode === 'INTELLIGENCE' ? (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Stats Cards */}
+          <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A]">
+              <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] text-left">
                 <span className="text-[9px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-2">Monthly Spend</span>
                 <p className="text-2xl font-black text-[#32213A]">₹{analytics.monthlyBurn}</p>
               </div>
-              <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A]">
+              <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] text-left">
                 <span className="text-[9px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-2">Daily Average</span>
                 <p className="text-2xl font-black text-[#32213A]">₹{analytics.dailyAvg}</p>
               </div>
             </div>
 
-            {/* Allocation */}
-            <div className="bg-white border-4 border-[#32213A] p-8 rounded-[3rem] shadow-[8px_8px_0px_#32213A]">
+            <div className="bg-white border-4 border-[#32213A] p-8 rounded-[3rem] shadow-[8px_8px_0px_#32213A] text-left">
               <h3 className="text-[10px] uppercase tracking-[0.3em] text-[#32213A]/40 font-black mb-6">Capital Allocation</h3>
               <div className="space-y-5">
                 {Object.entries(analytics.categoryBreakdown).length > 0 ? (
@@ -156,7 +142,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
                       </div>
                       <div className="h-3 bg-[#D4D6B9]/20 rounded-full border-2 border-[#32213A] overflow-hidden">
                         <div 
-                          className="h-full bg-[#32213A] rounded-full" 
+                          className="h-full bg-[#ADF7B6] rounded-full" 
                           style={{ width: `${Math.min(100, (amt / Math.max(1, analytics.monthlyBurn)) * 100)}%` }}
                         ></div>
                       </div>
@@ -176,8 +162,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
             </button>
           </div>
         ) : (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Filter Bar */}
+          <div className="space-y-6">
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
               {['ALL', 'EXPENSE', 'TODO', 'REMINDER', 'MOOD'].map(f => (
                 <button 
@@ -190,42 +175,33 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
               ))}
             </div>
 
-            {filteredEntries.length === 0 ? (
-              <div className="py-24 text-center">
-                <p className="text-[10px] uppercase tracking-widest font-black text-[#32213A]/20">Archive Empty</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredEntries.map(entry => {
-                  const expense = getExpenseForEntry(entry.id);
-                  const mood = getMoodForEntry(entry.id);
-                  return (
-                    <div key={entry.id} className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A]">
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                           <NeoPopIcon type={entry.intent === 'MOOD' ? 'MOOD' : entry.intent === 'EXPENSE' ? 'EXPENSE' : 'TODO'} className="w-6 h-6" />
-                           <span className="text-[9px] font-black uppercase text-[#32213A]/40 tracking-widest">{entry.intent}</span>
-                        </div>
-                        <span className="text-[9px] text-[#32213A]/20 font-black uppercase">{new Date(entry.createdAt).toLocaleDateString()}</span>
+            <div className="space-y-4">
+              {filteredEntries.map(entry => {
+                const isExpense = entry.intent === 'EXPENSE';
+                const isReminder = entry.intent === 'REMINDER';
+                const isTodo = entry.intent === 'TODO';
+                const isMood = entry.intent === 'MOOD';
+                
+                let bgColor = 'bg-white';
+                if (isExpense) bgColor = 'bg-[#ADF7B6]';
+                if (isReminder) bgColor = 'bg-[#F7EF81]';
+                if (isTodo) bgColor = 'bg-[#ADD2C2]';
+                if (isMood) bgColor = 'bg-[#B892FF]';
+
+                return (
+                  <div key={entry.id} className={`border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A] ${bgColor} text-left`}>
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-3">
+                         <NeoPopIcon type={entry.intent} className="w-6 h-6 shadow-none" />
+                         <span className="text-[9px] font-black uppercase text-[#32213A]/40 tracking-widest">{entry.intent}</span>
                       </div>
-                      
-                      <p className="text-sm text-[#32213A] font-bold leading-tight mb-4">"{entry.rawText}"</p>
-                      
-                      {(expense || mood) && (
-                        <div className="pt-4 border-t-2 border-[#D4D6B9]/30 flex justify-between items-center">
-                          <span className="text-[10px] font-black text-[#32213A]/40 uppercase tracking-tighter">
-                            {expense ? expense.category : 'Reflection'}
-                          </span>
-                          <span className="text-sm font-black text-[#32213A]">
-                            {expense ? `₹${expense.amount}` : mood?.sentiment}
-                          </span>
-                        </div>
-                      )}
+                      <span className="text-[9px] text-[#32213A]/30 font-black uppercase">{new Date(entry.createdAt).toLocaleDateString()}</span>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    <p className="text-sm text-[#32213A] font-bold leading-tight">"{entry.rawText}"</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

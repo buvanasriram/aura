@@ -5,7 +5,8 @@ import { HomeView } from './components/HomeView';
 import { ConfirmView } from './components/ConfirmView';
 import { HistoryView } from './components/HistoryView';
 import { ProcessingView } from './components/ProcessingView';
-import { AppView, AppState, IntentType, VoiceEntry, Expense, Task, MoodRecord } from './types';
+import { VoiceMode } from './components/VoiceMode';
+import { AppView, AppState, IntentType, VoiceEntry, Expense, Task, MoodRecord, NoteRecord } from './types';
 import { auraStore } from './services/storageManager';
 
 const App: React.FC = () => {
@@ -22,6 +23,8 @@ const App: React.FC = () => {
       try {
         await auraStore.init();
         const savedState = await auraStore.loadState();
+        // Ensure notes array exists
+        if (!savedState.notes) savedState.notes = [];
         setState(savedState);
         isReadyRef.current = true;
         setIsInitializing(false);
@@ -33,69 +36,76 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
-  const handleConfirmAction = async (finalEntities: any) => {
+  const handleConfirmAction = async (finalData: any) => {
     if (!processingData || !state || !isReadyRef.current) return;
     
     const entryId = Math.random().toString(36).substring(2, 9);
     const now = Date.now();
+    const today = new Date().toISOString().split('T')[0];
     
-    // 1. Create entry
     const newEntry: VoiceEntry = {
       id: entryId,
       rawText: processingData.rawText,
       intent: processingData.intent,
       confidence: 0.95,
-      extractedEntities: finalEntities,
+      extractedEntities: finalData,
       createdAt: now,
       source: 'voice'
     };
 
-    // 2. Intent-specific data creation
     let relatedItem: any = null;
-    let tableKey: 'EXPENSES' | 'TASKS' | 'MOODS' = 'TASKS';
+    let tableKey: string = 'TASKS';
 
     if (processingData.intent === 'EXPENSE') {
       tableKey = 'EXPENSES';
       relatedItem = {
         id: Math.random().toString(36).substring(2, 9),
         entryId,
-        amount: Number(finalEntities.amount) || 0,
-        currency: finalEntities.currency || 'INR',
-        category: finalEntities.category || 'Others',
-        date: finalEntities.date || new Date().toISOString().split('T')[0],
-        description: finalEntities.description || processingData.rawText
-      };
+        amount: Number(finalData.amount) || 0,
+        currency: finalData.currency || 'INR',
+        category: finalData.category || 'Others',
+        date: finalData.date || today,
+        description: finalData.details || processingData.rawText
+      } as Expense;
     } else if (processingData.intent === 'TODO' || processingData.intent === 'REMINDER') {
       tableKey = 'TASKS';
       relatedItem = {
         id: Math.random().toString(36).substring(2, 9),
-        title: finalEntities.title || processingData.rawText,
+        title: finalData.headline || (processingData.intent === 'REMINDER' ? 'Reminder' : processingData.rawText),
+        description: finalData.details || processingData.rawText,
         completed: false,
-        priority: finalEntities.priority || (processingData.intent === 'REMINDER' ? 'high' : 'medium'),
-        category: finalEntities.category || (processingData.intent === 'REMINDER' ? 'Reminder' : 'Personal'),
-        date: finalEntities.date || new Date().toISOString().split('T')[0],
+        priority: finalData.priority || (processingData.intent === 'REMINDER' ? 'high' : 'medium'),
+        category: processingData.intent === 'REMINDER' ? 'Reminder' : 'Personal',
+        date: finalData.date || today,
         createdAt: now
-      };
+      } as Task;
     } else if (processingData.intent === 'MOOD') {
       tableKey = 'MOODS';
       relatedItem = {
         id: Math.random().toString(36).substring(2, 9),
         entryId,
-        sentiment: finalEntities.sentiment || 'Neutral',
-        sentence: finalEntities.sentence || 'Reflection captured.',
-        reason: finalEntities.reason || processingData.rawText,
+        sentiment: finalData.vibe || 'Neutral',
+        sentence: finalData.headline || 'Reflection captured.',
+        reason: finalData.reason || processingData.rawText,
         createdAt: now
-      };
+      } as MoodRecord;
+    } else if (processingData.intent === 'NOTE') {
+      tableKey = 'NOTES';
+      relatedItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        entryId,
+        text: finalData.text || processingData.rawText,
+        date: finalData.date || today,
+        createdAt: now
+      } as NoteRecord;
     }
 
-    // 3. Save to Disk FIRST (Atomic Persistence)
     try {
       await auraStore.saveItem('ENTRIES', newEntry);
       if (relatedItem) {
-        await auraStore.saveItem(tableKey, relatedItem);
+        await auraStore.saveItem(tableKey as any, relatedItem);
       }
       
-      // 4. Update memory (State) ONLY after successful save
       setState(prev => {
         if (!prev) return prev;
         const next = { ...prev };
@@ -103,6 +113,7 @@ const App: React.FC = () => {
         if (processingData.intent === 'EXPENSE') next.expenses = [relatedItem, ...prev.expenses];
         if (processingData.intent === 'TODO' || processingData.intent === 'REMINDER') next.tasks = [relatedItem, ...prev.tasks];
         if (processingData.intent === 'MOOD') next.moods = [relatedItem, ...prev.moods];
+        if (processingData.intent === 'NOTE') next.notes = [relatedItem, ...(prev.notes || [])];
         return next;
       });
     } catch (dbErr) {
@@ -116,7 +127,7 @@ const App: React.FC = () => {
   const handleClearDatabase = async () => {
     if (confirm("Purge vault? This will erase all persistent records.")) {
       await auraStore.purgeAll();
-      setState({ voiceEntries: [], expenses: [], tasks: [], moods: [] });
+      setState({ voiceEntries: [], expenses: [], tasks: [], moods: [], notes: [] });
     }
   };
 
@@ -132,13 +143,21 @@ const App: React.FC = () => {
           moodsCount={state.moods.length}
           moods={state.moods}
           isProcessing={isProcessing}
-          onStartVoice={() => {}} 
+          onStartVoice={() => setView(AppView.VOICE_CAPTURE)} 
           onViewHistory={() => setView(AppView.HISTORY)}
           onVoiceSuccess={(data) => {
-            setIsProcessing(true);
             setProcessingData(data);
             setView(AppView.CONFIRM_INTENT);
-            setIsProcessing(false);
+          }}
+        />
+      )}
+      {view === AppView.VOICE_CAPTURE && (
+        <VoiceMode 
+          intentManager={null as any}
+          onExit={() => setView(AppView.HOME)}
+          onProcessingComplete={(data) => {
+            setProcessingData(data);
+            setView(AppView.CONFIRM_INTENT);
           }}
         />
       )}

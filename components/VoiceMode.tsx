@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { IntentManager } from '../services/intentManager';
 import { IntentType } from '../types';
 import { ProcessingView } from './ProcessingView';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 interface VoiceModeProps {
   intentManager: IntentManager;
@@ -107,7 +107,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
       setStatus("Listening...");
     };
 
-    // FIX: Rebuild the whole transcript string from scratch each time to prevent "repeated" words.
     recognition.onresult = (event: any) => {
       let finalTranscript = "";
       let interimTranscript = "";
@@ -122,7 +121,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     };
 
     recognition.onerror = (err: any) => {
-      console.error("[AURA] Recognition error:", err);
       if (err.error !== 'no-speech') {
         setErrorMessage("Speech capture interrupted.");
         stopVoiceCapture();
@@ -158,30 +156,46 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Using gemini-3-flash-preview as requested for speed and efficiency
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', 
         contents: [{
           parts: [{
-            text: `Input Text: "${textToProcess}"
-            Current Date: ${today}
+            text: `Input: "${textToProcess}"
+            System Time: ${today}
             
-            Extract structured JSON data.
-            Rules:
-            1. Intent: EXPENSE, TODO, REMINDER, MOOD, NOTE.
-            2. For EXPENSE: 
-               - Map categories ONLY to: Food, Groceries, Transport, Shopping, Bills, Entertainment, Medical, Others.
-               - IMPORTANT: Words like "petrol", "uber", "bus", "travel" must map to "Transport".
-               - amount: numeric.
-               - currency: default INR.
-               - date: Use ${today} if no date mentioned.
-            3. For TODO/REMINDER: Use ${today} if no date mentioned.
-            
-            JSON format only: { "rawText": string, "intent": string, "entities": object }`
+            Extract context. Be creative with vibes and headlines. 
+            Vibe must be a single evocative word. 
+            Headline must be a sharp summary.`
           }]
         }],
         config: { 
           responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 }
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              intent: { 
+                type: Type.STRING, 
+                description: 'EXPENSE, TODO, REMINDER, MOOD, or NOTE' 
+              },
+              entities: {
+                type: Type.OBJECT,
+                properties: {
+                  vibe: { type: Type.STRING, description: '1-word emotional state for MOOD' },
+                  headline: { type: Type.STRING, description: '3-5 word summary for MOOD/TODO' },
+                  reason: { type: Type.STRING, description: 'Original text for MOOD' },
+                  amount: { type: Type.NUMBER, description: 'Cost for EXPENSE' },
+                  category: { type: Type.STRING, description: 'Expense category' },
+                  details: { type: Type.STRING, description: 'Full context description' },
+                  currency: { type: Type.STRING, description: 'Default INR' },
+                  date: { type: Type.STRING, description: 'Target date YYYY-MM-DD' },
+                  priority: { type: Type.STRING, description: 'high/medium/low' },
+                  text: { type: Type.STRING, description: 'Body for NOTE' }
+                }
+              }
+            },
+            required: ['intent', 'entities']
+          }
         }
       });
 
@@ -192,7 +206,7 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
         entities: result.entities || {}
       });
     } catch (apiErr: any) {
-      console.error("[AURA] API Error:", apiErr);
+      console.error("[AURA] Extraction error:", apiErr);
       const is429 = apiErr.message?.includes('429') || apiErr.status === 429;
       if (is429) {
          setIsQuotaError(true);
@@ -236,7 +250,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
               {isQuotaError && cooldownSeconds > 0 && (
                 <p className="text-[#32213A]/60 text-[8px] font-black uppercase tracking-widest mb-6">Text limits reset in {cooldownSeconds}s</p>
               )}
-              
               <button 
                 disabled={cooldownSeconds > 0}
                 onClick={startVoiceCapture} 
@@ -266,10 +279,10 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
 
         <div className="max-w-xs mx-auto">
           <p className="text-[12px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-2">
-            Local Intelligence Active
+            Intelligence Active
           </p>
           <p className="text-[14px] font-black text-[#32213A]/60 leading-tight">
-            {isRecording ? "I can hear you! Tap to finish speaking." : "Tap once and tell me what's on your mind."}
+            {isRecording ? "Listening to your thoughts..." : "Flash Summaries and Vibes are generated automatically."}
           </p>
         </div>
       </div>

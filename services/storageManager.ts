@@ -1,13 +1,14 @@
 
-import { AppState, VoiceEntry, Expense, Task, MoodRecord } from '../types';
+import { AppState, VoiceEntry, Expense, Task, MoodRecord, NoteRecord } from '../types';
 
 const DB_NAME = 'AuraRelationalVault';
-const DB_VERSION = 5; 
+const DB_VERSION = 6; // Incremented for Notes table
 const TABLES = {
   ENTRIES: 'voiceEntries',
   EXPENSES: 'expenses',
   TASKS: 'tasks',
-  MOODS: 'moods'
+  MOODS: 'moods',
+  NOTES: 'notes'
 };
 
 export class StorageManager {
@@ -32,7 +33,6 @@ export class StorageManager {
       request.onsuccess = () => {
         this.db = request.result;
         this.isInitialized = true;
-        console.log("[AURA STORAGE] DB Initialized v" + DB_VERSION);
         resolve();
       };
 
@@ -40,10 +40,6 @@ export class StorageManager {
     });
   }
 
-  /**
-   * Atomic Save: Only write a single new item.
-   * This is much safer than syncing the entire application state.
-   */
   async saveItem(table: keyof typeof TABLES, item: any): Promise<void> {
     if (!this.db || !this.isInitialized) await this.init();
     const tableName = TABLES[table];
@@ -53,17 +49,14 @@ export class StorageManager {
       const store = transaction.objectStore(tableName);
       const request = store.put(item);
 
-      request.onsuccess = () => {
-        console.log(`[AURA STORAGE] Saved item to ${tableName}:`, item.id);
-        resolve();
-      };
+      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
 
   async loadState(): Promise<AppState> {
     if (!this.db) await this.init();
-    const state: any = { voiceEntries: [], expenses: [], tasks: [], moods: [] };
+    const state: any = { voiceEntries: [], expenses: [], tasks: [], moods: [], notes: [] };
     const storeNames = Object.values(TABLES);
     
     return new Promise((resolve, reject) => {
@@ -75,7 +68,6 @@ export class StorageManager {
         const request = store.getAll();
         request.onsuccess = () => {
           const results = request.result || [];
-          // Map internal table names back to state keys
           const stateKey = Object.keys(TABLES).find(k => (TABLES as any)[k] === storeName);
           if (stateKey) {
             const finalKey = stateKey === 'ENTRIES' ? 'voiceEntries' : stateKey.toLowerCase();
@@ -83,7 +75,6 @@ export class StorageManager {
           }
           completed++;
           if (completed === storeNames.length) {
-            console.log("[AURA STORAGE] State fully reconstructed from Disk");
             resolve(state as AppState);
           }
         };
@@ -97,7 +88,6 @@ export class StorageManager {
     const storeNames = Object.values(TABLES);
     const transaction = this.db.transaction(storeNames, 'readwrite');
     storeNames.forEach(storeName => transaction.objectStore(storeName).clear());
-    localStorage.removeItem('aura_pending_draft');
     return new Promise((resolve) => {
       transaction.oncomplete = () => resolve();
     });
