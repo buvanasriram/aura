@@ -25,6 +25,7 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
         </svg>
       );
     case 'TODO':
+    case 'REMINDER':
       return (
         <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="4" y="4" width="16" height="16" rx="3" fill="#4ADE80" stroke="#32213A" strokeWidth="2.5"/>
@@ -32,6 +33,7 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
         </svg>
       );
     case 'PULSE':
+    case 'MOOD':
       return (
         <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="9" fill="#F472B6" stroke="#32213A" strokeWidth="2.5"/>
@@ -222,6 +224,16 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     }
   };
 
+  const getCardStyle = (intent: IntentType) => {
+    switch (intent) {
+      case 'EXPENSE': return 'bg-[#FFE4E4]'; // Soft Rose
+      case 'TODO':
+      case 'REMINDER': return 'bg-[#D1FAE5]'; // Soft Emerald
+      case 'MOOD': return 'bg-[#FCE7F3]'; // Soft Pink
+      default: return 'bg-white';
+    }
+  };
+
   const isBusy = internalProcessing || externalProcessing;
 
   return (
@@ -327,7 +339,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
           </div>
         ) : (
           recentEntries.map(entry => (
-            <div key={entry.id} className="flex gap-5 items-center bg-white p-5 rounded-[2.5rem] border-4 border-[#32213A] shadow-[4px_4px_0px_#32213A]">
+            <div key={entry.id} className={`flex gap-5 items-center p-5 rounded-[2.5rem] border-4 border-[#32213A] shadow-[4px_4px_0px_#32213A] transition-colors duration-300 ${getCardStyle(entry.intent)}`}>
               <NeoPopIcon type={entry.intent === 'MOOD' ? 'PULSE' : entry.intent} className="w-8 h-8" />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-extrabold text-[#32213A] truncate mb-0.5">"{entry.rawText}"</p>
