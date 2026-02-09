@@ -164,7 +164,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   const processText = async (text: string) => {
     const apiKey = process.env.API_KEY;
+    
+    console.log("[AURA DEBUG] Attempting API call. process.env.API_KEY available:", !!apiKey);
+    
     if (!apiKey || apiKey === "") {
+      console.error("[AURA ERROR] process.env.API_KEY is empty or undefined during processing.");
       setErrorStatus("API KEY MISSING IN ENV");
       return;
     }
@@ -172,7 +176,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     setInternalProcessing(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      // Always use the mandated initialization pattern: const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: [{
