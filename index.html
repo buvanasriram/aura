@@ -5,18 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Aura Assistant</title>
-    <!-- Tailwind is required for the utility classes used in the components -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --midnight-violet: #32213A;
-            --space-indigo: #383B53;
-            --blue-slate: #66717E;
             --sand-dune: #D4D6B9;
-            --dry-sage: #D1CAA1;
         }
-        /* Fallback / Emergency CSS in case Tailwind fails to load */
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--sand-dune);
@@ -24,22 +19,7 @@
             overflow: hidden;
             margin: 0;
             height: 100vh;
-            height: -webkit-fill-available;
-            display: flex;
-            flex-direction: column;
         }
-        .flex { display: flex !important; }
-        .flex-col { flex-direction: column !important; }
-        .flex-1 { flex: 1 1 0% !important; }
-        .justify-between { justify-content: space-between !important; }
-        .items-center { align-items: center !important; }
-        .items-start { align-items: flex-start !important; }
-        .relative { position: relative !important; }
-        .absolute { position: absolute !important; }
-        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-        .w-full { width: 100% !important; }
-        .h-full { height: 100% !important; }
-        
         .neo-pop-shadow {
             filter: drop-shadow(4px 4px 0px var(--midnight-violet));
         }
@@ -48,9 +28,6 @@
         
         #root {
             height: 100vh;
-            height: -webkit-fill-available;
-            display: flex;
-            flex-direction: column;
         }
 
         @keyframes slideUp {
@@ -62,13 +39,7 @@
         }
     </style>
     <script>
-        // Extremely robust shim for process.env.
-        // Ensures the Google GenAI SDK always has a valid object to reference.
-        if (typeof window.process === 'undefined') {
-            window.process = { env: {} };
-        } else if (typeof window.process.env === 'undefined') {
-            window.process.env = {};
-        }
+        if (typeof window.process === 'undefined') { window.process = { env: {} }; }
     </script>
 <script type="importmap">
 {
