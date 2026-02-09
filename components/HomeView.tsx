@@ -18,7 +18,7 @@ interface HomeViewProps {
 const NeoPopIcon = ({ type, className, colorOverride }: { type: string, className?: string, colorOverride?: string }) => {
   const iconBase = `shrink-0 neo-pop-shadow ${className || ''}`;
   
-  // Explicit fallback sizes to prevent the "Giant Icon" bug shown in screenshots
+  // Strict dimension forcing to prevent the "Giant Icon" bug
   const size = className?.includes('w-12') ? "48" : className?.includes('w-8') ? "32" : "24";
 
   switch (type) {
@@ -165,7 +165,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   const processText = async (text: string) => {
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-      setErrorStatus("API KEY MISSING");
+      setErrorStatus("API KEY MISSING IN ENV");
       return;
     }
 

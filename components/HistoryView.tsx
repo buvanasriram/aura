@@ -15,32 +15,34 @@ interface HistoryViewProps {
 type VaultMode = 'ARCHIVES' | 'INTELLIGENCE';
 
 const NeoPopIcon = ({ type, className }: { type: string, className?: string }) => {
-  const iconBase = `shrink-0 neo-pop-shadow ${className}`;
+  const iconBase = `shrink-0 neo-pop-shadow ${className || ''}`;
+  const size = "24"; // Force a base size for history icons
+
   switch (type) {
     case 'EXPENSE': 
       return (
-        <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="3" y="6" width="18" height="12" rx="4" fill="#ADF7B6" stroke="#32213A" strokeWidth="2.5"/>
           <circle cx="12" cy="12" r="3" fill="white" stroke="#32213A" strokeWidth="2"/>
         </svg>
       );
     case 'REMINDER':
       return (
-        <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M18 8C18 4.68629 15.3137 2 12 2C8.68629 2 6 4.68629 6 8V11C6 11.6644 5.71554 12.2961 5.21115 12.7334C4.43632 13.4063 4 14.3828 4 15.4118V16C4 16.5523 4.44772 17 5 17H19C19.5523 17 20 16.5523 20 16V15.4118C20 14.3828 19.5637 13.4063 18.7889 12.7334C18.2845 12.2961 18 11.6644 18 11V8Z" fill="#F7EF81" stroke="#32213A" strokeWidth="2.5"/>
           <path d="M10 19C10 20.1046 10.8954 21 12 21C13.1046 21 14 20.1046 14 19" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       );
     case 'TODO':
       return (
-        <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="4" y="4" width="16" height="16" rx="3" fill="#ADD2C2" stroke="#32213A" strokeWidth="2.5"/>
           <path d="M8 12L11 15L16 9" stroke="#32213A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       );
     case 'MOOD':
       return (
-        <svg className={iconBase} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="9" fill="#B892FF" stroke="#32213A" strokeWidth="2.5"/>
           <path d="M7 12L9 12L11 8L13 16L15 12L17 12" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -85,18 +87,18 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
   }, [expenses]);
 
   return (
-    <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#D4D6B9]">
+    <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#D4D6B9] max-w-md mx-auto border-x-4 border-[#32213A]/5">
       <header className="px-6 py-8 flex justify-between items-center">
         <div className="text-left">
           <h2 className="text-3xl font-black tracking-tighter text-[#32213A]">Vault</h2>
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40">Persistent Data</p>
         </div>
         <div className="flex items-center gap-3">
-           <button onClick={onExport} className="w-12 h-12 bg-white border-2 border-[#32213A] rounded-2xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+           <button onClick={onExport} className="w-12 h-12 bg-white border-2 border-[#32213A] rounded-2xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow transition-all">
+             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
            </button>
-           <button onClick={onBack} className="w-12 h-12 bg-[#32213A] rounded-2xl flex items-center justify-center text-white active:scale-90">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+           <button onClick={onBack} className="w-12 h-12 bg-[#32213A] rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
            </button>
         </div>
       </header>
@@ -189,7 +191,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
                 if (isMood) bgColor = 'bg-[#B892FF]';
 
                 return (
-                  <div key={entry.id} className={`border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A] ${bgColor} text-left`}>
+                  <div key={entry.id} className={`border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A] ${bgColor} text-left transition-transform active:scale-[0.98]`}>
                     <div className="flex justify-between items-center mb-4">
                       <div className="flex items-center gap-3">
                          <NeoPopIcon type={entry.intent} className="w-6 h-6 shadow-none" />

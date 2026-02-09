@@ -39,7 +39,13 @@
         }
     </style>
     <script>
-        if (typeof window.process === 'undefined') { window.process = { env: {} }; }
+        // Ensure process.env.API_KEY is available globally for the Gemini SDK
+        window.process = window.process || { env: {} };
+        // This is a safety bridge for hosted environments
+        if (typeof window.process.env.API_KEY === 'undefined') {
+            // Vercel/Vite often prefixes or hides these, so we ensure the SDK can find it
+            window.process.env.API_KEY = window.process.env.API_KEY || "";
+        }
     </script>
 <script type="importmap">
 {
