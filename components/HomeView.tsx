@@ -163,12 +163,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   };
 
   const processText = async (text: string) => {
-    // Robust runtime check using globalThis to ensure we see the shimmied key 
-    // even if the module-local process.env was statically emptied by the bundler.
-    const runtimeKey = (globalThis as any).process?.env?.API_KEY;
-    
-    if (!runtimeKey) {
-      console.error("[AURA] API Key check failed at runtime. Ensure VITE_GEMINI_API_KEY is defined in Vercel.");
+    // Relying on the shim to provide process.env.API_KEY
+    if (!process.env.API_KEY) {
       setErrorStatus("API KEY MISSING");
       return;
     }
@@ -176,8 +172,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     setInternalProcessing(true);
 
     try {
-      // Use the mandated initialization pattern: process.env.API_KEY
-      // The shim in index.tsx ensures this evaluates correctly at runtime.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
