@@ -18,7 +18,7 @@ interface HomeViewProps {
 const NeoPopIcon = ({ type, className, colorOverride }: { type: string, className?: string, colorOverride?: string }) => {
   const iconBase = `shrink-0 neo-pop-shadow ${className || ''}`;
   
-  // Strict dimension forcing to prevent the "Giant Icon" bug
+  // Explicitly constrained dimensions to prevent the "skewed UI" bug
   const size = className?.includes('w-12') ? "48" : className?.includes('w-8') ? "32" : "24";
 
   switch (type) {
@@ -164,13 +164,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   const processText = async (text: string) => {
     const apiKey = process.env.API_KEY;
-    if (!apiKey) {
+    if (!apiKey || apiKey === "") {
       setErrorStatus("API KEY MISSING IN ENV");
       return;
     }
 
     setInternalProcessing(true);
-    const today = new Date().toISOString().split('T')[0];
 
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -208,7 +207,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
       onVoiceSuccess({ rawText: text, intent: (result.intent as IntentType) || 'NOTE', entities: result.entities || {} });
     } catch (e: any) {
       console.error("[AURA] Sync error:", e);
-      setErrorStatus("SYNC FAILED");
+      setErrorStatus(e.message?.includes('401') ? "INVALID API KEY" : "SYNC FAILED");
     } finally {
       setInternalProcessing(false);
     }
