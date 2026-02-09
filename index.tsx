@@ -1,37 +1,39 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Setup global process.env for compatibility with SDK requirements
-// This bridge ensures that keys set in Vercel (e.g., VITE_GEMINI_API_KEY) 
-// are accessible via process.env.API_KEY as mandated by the instructions.
+/**
+ * ENVIRONMENT SHIM
+ * This block bridges environment variables from Vite/Vercel (import.meta.env)
+ * into the global process.env object required by the Gemini SDK guidelines.
+ * 
+ * IMPORTANT: Vite requires STATIC references to import.meta.env variables 
+ * for them to be replaced during the build process. Accessing them via 
+ * dynamic properties (e.g., import.meta.env[key]) will NOT work in production.
+ */
 if (typeof window !== 'undefined') {
+  // Explicitly reference variables so Vite can statically replace them at build time
+  // Fix: Cast import.meta to any to resolve property 'env' not found error on ImportMeta
+  const VITE_GEMINI_API_KEY = (import.meta as any).env.VITE_GEMINI_API_KEY;
+  // Fix: Cast import.meta to any to resolve property 'env' not found error on ImportMeta
+  const VITE_API_KEY = (import.meta as any).env.VITE_API_KEY;
+  
+  // Choose the first available key
+  const resolvedKey = VITE_GEMINI_API_KEY || VITE_API_KEY || "";
+
+  // Set globally for SDK compatibility
   (window as any).process = (window as any).process || {};
   (window as any).process.env = (window as any).process.env || {};
-
-  // Debug logs for environment variable detection
-  console.log("[AURA DEBUG] Checking Environment Sources...");
-  // Added cast to any to fix TypeScript error: Property 'env' does not exist on type 'ImportMeta'
-  console.log("[AURA DEBUG] import.meta.env:", (import.meta as any).env);
-  console.log("[AURA DEBUG] VITE_GEMINI_API_KEY source:", (import.meta as any).env?.VITE_GEMINI_API_KEY ? "FOUND (HIDDEN)" : "NOT FOUND");
-  
-  // Try to resolve the API Key from multiple potential environment sources
-  const resolvedKey = 
-    (window as any).process.env.API_KEY || 
-    (import.meta as any).env?.VITE_GEMINI_API_KEY || 
-    (import.meta as any).env?.VITE_API_KEY ||
-    (import.meta as any).env?.API_KEY ||
-    "";
-
   (window as any).process.env.API_KEY = resolvedKey;
-  
-  console.log("[AURA DEBUG] Final resolved process.env.API_KEY length:", resolvedKey.length);
-  
-  if (!resolvedKey) {
-    console.error("[AURA ERROR] No API Key found in any environment source. Please check Vercel Dashboard for VITE_GEMINI_API_KEY.");
+
+  console.log("[AURA SYSTEM] Bootstrapping Environment...");
+  if (resolvedKey) {
+    console.log("[AURA SYSTEM] Integrity Check: Global API_KEY injected (len: " + resolvedKey.length + ")");
   } else {
-    console.log("[AURA SUCCESS] API Key successfully shimmied to process.env.API_KEY");
+    console.error("[AURA SYSTEM] Critical Error: No API Key detected in static build variables.");
+    // Diagnostic logs using static references to help identify missing keys in Vercel dashboard
+    console.log("[AURA SYSTEM] Debug - VITE_GEMINI_API_KEY availability:", !!VITE_GEMINI_API_KEY);
+    console.log("[AURA SYSTEM] Debug - VITE_API_KEY availability:", !!VITE_API_KEY);
   }
 }
 

@@ -103,11 +103,21 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
   };
 
   const processText = async (textToProcess: string) => {
+    // Robust runtime key verification using globalThis
+    const runtimeKey = (globalThis as any).process?.env?.API_KEY;
+    if (!runtimeKey) {
+      console.error("[AURA] API Key check failed at runtime in VoiceMode. Check VITE_GEMINI_API_KEY.");
+      setErrorMessage("System Error: AI Key Missing");
+      return;
+    }
+
     setIsProcessing(true);
     setStatus("Organizing...");
     const today = new Date().toISOString().split('T')[0];
     
     try {
+      // Mandated initialization: process.env.API_KEY
+      // The runtime shim ensures this property is available on the global process object.
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', 
