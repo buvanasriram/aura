@@ -56,63 +56,92 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
   }
 };
 
-const DataRow = ({ label, value, dark }: { label: string, value: any, dark?: boolean }) => (
-  <div className={`flex justify-between items-center py-2 border-b border-[#32213A]/5 last:border-0`}>
-    <span className={`text-[8px] font-black uppercase tracking-widest ${dark ? 'text-[#32213A]/40' : 'text-[#32213A]/50'}`}>{label}</span>
-    <span className="text-[10px] font-black text-[#32213A] truncate max-w-[180px]">{value || 'N/A'}</span>
-  </div>
-);
+const IntentTable = ({ intent, entries }: { intent: IntentType, entries: VoiceEntry[] }) => {
+  const getColumns = () => {
+    switch (intent) {
+      case 'EXPENSE': return ['Amount', 'Category', 'Target Date', 'Details'];
+      case 'TODO':
+      case 'REMINDER': return ['Due Date', 'Headline', 'Priority', 'Status'];
+      case 'MOOD': return ['Date', 'Vibe', 'Headline', 'Reason'];
+      default: return ['Date', 'Snapshot', 'Vibe', 'Raw Text'];
+    }
+  };
 
-const IntentDetails = ({ entry }: { entry: VoiceEntry }) => {
-  const e = entry.extractedEntities;
-  const intent = entry.intent;
+  const getRowData = (entry: VoiceEntry) => {
+    const e = entry.extractedEntities;
+    const dateStr = new Date(entry.createdAt).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit', year: 'numeric' });
+    
+    switch (intent) {
+      case 'EXPENSE':
+        return [
+          `${e.amount || 0} INR`,
+          e.category || 'Other',
+          e.date || dateStr,
+          e.headline || e.details || entry.rawText
+        ];
+      case 'TODO':
+      case 'REMINDER':
+        return [
+          e.date || 'TBD',
+          e.headline || entry.rawText,
+          e.priority || 'med',
+          e.completed ? 'Done' : 'Pend'
+        ];
+      case 'MOOD':
+        return [
+          dateStr,
+          e.vibe || 'Neutral',
+          e.headline || 'Mood',
+          e.reason || e.details || '-'
+        ];
+      default:
+        return [
+          dateStr,
+          e.headline || 'Note',
+          e.vibe || '-',
+          entry.rawText
+        ];
+    }
+  };
 
-  switch (intent) {
-    case 'EXPENSE':
-      return (
-        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
-          <DataRow label="Amount" value={`${e.amount || 0} INR`} dark />
-          <DataRow label="Category" value={e.category} dark />
-          <DataRow label="Target Date" value={e.date} dark />
-          <DataRow label="Details" value={e.headline || e.details} dark />
-        </div>
-      );
-    case 'TODO':
-    case 'REMINDER':
-      return (
-        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
-          <DataRow label="Task" value={e.headline} dark />
-          <DataRow label="Due Date" value={e.date} dark />
-          <DataRow label="Priority" value={e.priority} dark />
-          <DataRow label="Status" value={e.completed ? 'Done' : 'Pending'} dark />
-        </div>
-      );
-    case 'MOOD':
-      return (
-        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
-          <DataRow label="Vibe" value={e.vibe} dark />
-          <DataRow label="Insight" value={e.headline} dark />
-          <DataRow label="Context" value={e.reason || e.details} dark />
-        </div>
-      );
-    default:
-      return (
-        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
-          <DataRow label="Snapshot" value={e.headline || 'Note Captured'} dark />
-          <DataRow label="Vibe" value={e.vibe} dark />
-        </div>
-      );
+  const columns = getColumns();
+
+  if (entries.length === 0) {
+    return (
+      <div className="py-20 text-center border-4 border-dashed border-[#32213A]/10 rounded-[2.5rem]">
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#32213A]/30 italic">Vault Empty</p>
+      </div>
+    );
   }
+
+  return (
+    <div className="bg-white border-4 border-[#32213A] rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] overflow-hidden">
+      <div className="grid grid-cols-4 bg-[#32213A] text-white px-4 py-4 border-b-2 border-[#32213A]">
+        {columns.map(col => (
+          <span key={col} className="text-[7.5px] font-black uppercase tracking-widest truncate pr-1">{col}</span>
+        ))}
+      </div>
+      <div className="max-h-[500px] overflow-y-auto no-scrollbar">
+        {entries.map((entry, idx) => (
+          <div key={entry.id} className={`grid grid-cols-4 px-4 py-4 items-center border-b-2 border-[#32213A]/5 last:border-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#D4D6B9]/15'}`}>
+            {getRowData(entry).map((val, i) => (
+              <span key={i} className="text-[9.5px] font-black text-[#32213A] truncate pr-2 uppercase tracking-tighter">
+                {val}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moods, tasks, onBack, onClearAll, onExport }) => {
-  const [mode, setMode] = useState<VaultMode>('INTELLIGENCE');
-  const [filter, setFilter] = useState<string>('ALL');
+  const [mode, setMode] = useState<VaultMode>('ARCHIVES');
+  const [filter, setFilter] = useState<IntentType>('EXPENSE');
 
   const filteredEntries = useMemo(() => {
-    return filter === 'ALL' 
-      ? entries 
-      : entries.filter(e => e.intent === filter);
+    return entries.filter(e => e.intent === filter);
   }, [entries, filter]);
 
   const analytics = useMemo(() => {
@@ -139,6 +168,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
     return { monthlyBurn, dailyAvg, categoryBreakdown };
   }, [expenses]);
 
+  const intents: IntentType[] = ['EXPENSE', 'TODO', 'REMINDER', 'MOOD', 'NOTE'];
+
   return (
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#D4D6B9] max-w-md mx-auto border-x-4 border-[#32213A]/5">
       <header className="px-6 py-8 flex justify-between items-center">
@@ -158,21 +189,37 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
 
       <div className="flex px-6 gap-4 mb-6">
         <button 
-          onClick={() => setMode('INTELLIGENCE')}
-          className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-2xl border-4 transition-all ${mode === 'INTELLIGENCE' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
-        >
-          Insights
-        </button>
-        <button 
           onClick={() => setMode('ARCHIVES')}
           className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-2xl border-4 transition-all ${mode === 'ARCHIVES' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
         >
           Archives
         </button>
+        <button 
+          onClick={() => setMode('INTELLIGENCE')}
+          className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-2xl border-4 transition-all ${mode === 'INTELLIGENCE' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
+        >
+          Insights
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-12">
-        {mode === 'INTELLIGENCE' ? (
+        {mode === 'ARCHIVES' ? (
+          <div className="space-y-6">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
+              {intents.map(f => (
+                <button 
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`shrink-0 px-6 py-2 rounded-full text-[8.5px] uppercase tracking-widest font-black border-2 transition-all flex items-center gap-2 ${filter === f ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white border-[#32213A]/15 text-[#32213A]/40'}`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            <IntentTable intent={filter} entries={filteredEntries} />
+          </div>
+        ) : (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] text-left">
@@ -215,56 +262,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
             >
               Purge Vault
             </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-              {['ALL', 'EXPENSE', 'TODO', 'REMINDER', 'MOOD'].map(f => (
-                <button 
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`shrink-0 px-6 py-2 rounded-full text-[9px] uppercase tracking-widest font-black border-2 transition-all ${filter === f ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white border-[#32213A]/10 text-[#32213A]/30'}`}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              {filteredEntries.length === 0 ? (
-                <div className="py-20 text-center opacity-20 italic">No records in this archive.</div>
-              ) : filteredEntries.map(entry => {
-                const isExpense = entry.intent === 'EXPENSE';
-                const isReminder = entry.intent === 'REMINDER';
-                const isTodo = entry.intent === 'TODO';
-                const isMood = entry.intent === 'MOOD';
-                
-                let bgColor = 'bg-white';
-                if (isExpense) bgColor = 'bg-[#ADF7B6]';
-                if (isReminder) bgColor = 'bg-[#F7EF81]';
-                if (isTodo) bgColor = 'bg-[#ADD2C2]';
-                if (isMood) bgColor = 'bg-[#B892FF]';
-
-                return (
-                  <div key={entry.id} className={`border-4 border-[#32213A] p-5 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A] ${bgColor} text-left transition-transform active:scale-[0.98]`}>
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                         <NeoPopIcon type={entry.intent} className="w-5 h-5 shadow-none" />
-                         <span className="text-[9px] font-black uppercase text-[#32213A]/60 tracking-widest">{entry.intent}</span>
-                      </div>
-                      <span className="text-[8px] text-[#32213A]/40 font-black uppercase">{new Date(entry.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    
-                    <IntentDetails entry={entry} />
-
-                    <div className="mt-4 pt-3 border-t border-[#32213A]/10">
-                      <span className="text-[7px] font-black uppercase tracking-widest text-[#32213A]/30 block mb-1">Transcript</span>
-                      <p className="text-[11px] text-[#32213A]/70 font-bold leading-tight line-clamp-2">"{entry.rawText}"</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         )}
       </div>
