@@ -242,6 +242,16 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
   const isBusy = internalProcessing || externalProcessing;
 
+  const formatDateLabel = (dateStr: string) => {
+    if (!dateStr) return 'TBD';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full relative overflow-hidden px-5 pb-5 bg-[#D4D6B9] font-black w-full max-w-md mx-auto">
       {/* Error Toast */}
@@ -290,19 +300,21 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       </header>
 
-      {/* REFINED ALERTS SECTION: ALL ALERTS IN ONE BOX WITH DATES */}
+      {/* REFINED ALERTS SECTION: CRISP ONE-LINE ALERTS */}
       {upcomingAlerts.length > 0 && (
         <div className="mb-3 shrink-0 text-left">
            <h3 className="text-[8px] font-black uppercase tracking-[0.3em] text-[#32213A]/40 px-2 mb-1.5">Upcoming Alerts</h3>
-           <div className="bg-[#F7EF81] p-3 rounded-[1.5rem] border-[3px] border-[#32213A] shadow-[3px_3px_0px_#32213A] space-y-2">
+           <div className="bg-[#F7EF81] p-3 rounded-[1.5rem] border-[3px] border-[#32213A] shadow-[3px_3px_0px_#32213A] space-y-1">
              {upcomingAlerts.map((alert, index) => (
-               <div key={alert.id} className={`flex items-start gap-3 ${index > 0 ? 'pt-2 border-t-[1.5px] border-[#32213A]/10' : ''}`}>
-                 <NeoPopIcon type="ALERTS" className="w-4 h-4 mt-0.5" colorOverride="#32213A" />
-                 <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-black text-[#32213A] truncate leading-tight mb-0.5">{alert.title}</p>
-                    <span className="text-[7px] font-black text-[#32213A]/50 uppercase tracking-widest">
-                       Due: {alert.date || 'TBD'}
+               <div key={alert.id} className={`flex items-center gap-2 py-0.5 ${index > 0 ? 'border-t border-[#32213A]/5 mt-0.5 pt-1.5' : ''}`}>
+                 <NeoPopIcon type="ALERTS" className="w-3.5 h-3.5" colorOverride="#32213A" />
+                 <div className="flex-1 flex items-baseline gap-2 min-w-0">
+                    <span className="text-[8px] font-black text-[#32213A] bg-white/40 px-1.5 py-0.5 rounded tracking-tighter shrink-0">
+                       {formatDateLabel(alert.date)}
                     </span>
+                    <p className="text-[10px] font-black text-[#32213A] truncate leading-none">
+                       {alert.title}
+                    </p>
                  </div>
                </div>
              ))}
