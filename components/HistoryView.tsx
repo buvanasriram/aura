@@ -126,7 +126,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
   const [mode, setMode] = useState<VaultMode>('ARCHIVES');
   const [filter, setFilter] = useState<IntentType>('EXPENSE');
 
-  // Date Filtering State
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
   const todayStr = now.toISOString().split('T')[0];
@@ -138,7 +137,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
     const start = new Date(fromDate).getTime();
     const end = new Date(toDate).setHours(23, 59, 59, 999);
 
-    // Filtered source data based on date range
     const filteredExpenses = expenses.filter(e => {
       const d = new Date(e.date).getTime();
       return d >= start && d <= end;
@@ -154,31 +152,33 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
       return d >= start && d <= end;
     });
 
-    // Calculations
     const totalSpend = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const categoryBreakdown = filteredExpenses.reduce((acc: any, e) => {
+    const categoryBreakdown = filteredExpenses.reduce((acc: Record<string, number>, e) => {
       acc[e.category] = (acc[e.category] || 0) + e.amount;
       return acc;
     }, {});
 
-    const moodCounts = filteredMoods.reduce((acc: any, m) => {
+    const moodCounts = filteredMoods.reduce((acc: Record<string, number>, m) => {
       acc[m.sentiment] = (acc[m.sentiment] || 0) + 1;
       return acc;
     }, {});
 
     const pendingTasks = filteredTasks.filter(t => !t.completed).length;
     const completedTasks = filteredTasks.filter(t => t.completed).length;
+    const totalTasks = filteredTasks.length;
+    const efficiency = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return { 
       totalSpend, 
       categoryBreakdown, 
       moodCounts, 
       pendingTasks, 
-      completedTasks 
+      completedTasks,
+      efficiency,
+      totalTasks
     };
   }, [expenses, moods, tasks, fromDate, toDate]);
 
-  // Fix: Added filteredEntries to solve the 'Cannot find name filteredEntries' error at line 228
   const filteredEntries = useMemo(() => {
     return entries.filter(e => e.intent === filter);
   }, [entries, filter]);
@@ -233,88 +233,111 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
             <IntentTable intent={filter} entries={filteredEntries} />
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Date Range Picker */}
-            <div className="bg-white border-2 border-[#32213A] p-4 flex gap-3">
+          <div className="space-y-8 pb-10">
+            {/* Date Range Picker - Unified */}
+            <div className="bg-white border-4 border-[#32213A] p-4 flex gap-3 neo-pop-shadow">
               <div className="flex-1 space-y-1">
-                <label className="text-[8px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">From</label>
+                <label className="text-[8px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">Start Range</label>
                 <input 
                   type="date" 
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full bg-[#32213A]/5 border border-[#32213A] px-2 py-2 text-[10px] font-black text-[#32213A]"
+                  className="w-full bg-[#32213A]/5 border-2 border-[#32213A] px-2 py-2 text-[10px] font-black text-[#32213A]"
                 />
               </div>
               <div className="flex-1 space-y-1">
-                <label className="text-[8px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">To</label>
+                <label className="text-[8px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">End Range</label>
                 <input 
                   type="date" 
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full bg-[#32213A]/5 border border-[#32213A] px-2 py-2 text-[10px] font-black text-[#32213A]"
+                  className="w-full bg-[#32213A]/5 border-2 border-[#32213A] px-2 py-2 text-[10px] font-black text-[#32213A]"
                 />
               </div>
             </div>
 
-            {/* Task Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#ADD2C2] border-2 border-[#32213A] p-5 text-left">
-                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/60 font-black block mb-1">Pending Tasks</span>
-                <p className="text-3xl font-black text-[#32213A]">{analytics.pendingTasks}</p>
-              </div>
-              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
-                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Completed</span>
-                <p className="text-3xl font-black text-[#32213A]">{analytics.completedTasks}</p>
-              </div>
-            </div>
-
-            {/* Mood Frequency */}
-            <div className="bg-[#B892FF] border-2 border-[#32213A] p-5 text-left">
-              <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#32213A]/60 font-black mb-4 px-1">Mood Distribution</h3>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(analytics.moodCounts).length > 0 ? (
-                  Object.entries(analytics.moodCounts).map(([mood, count]) => (
-                    <div key={mood} className="bg-white px-3 py-1.5 border-2 border-[#32213A] flex items-center gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-tighter text-[#32213A]">{mood}</span>
-                      <div className="w-5 h-5 bg-[#32213A] text-white rounded-full flex items-center justify-center text-[9px] font-black leading-none">{count as any}</div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[9px] italic text-[#32213A]/60 font-black uppercase">No mood reflections in range</p>
-                )}
-              </div>
-            </div>
-
-            {/* Category-wise Expenses */}
-            <div className="bg-white border-2 border-[#32213A] overflow-hidden">
-               <div className="bg-[#ADF7B6] px-4 py-3 border-b-2 border-[#32213A]">
-                 <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#32213A] font-black">Capital Utilization</h3>
+            {/* Task Efficiency Gauge */}
+            <div className="bg-[#ADD2C2] border-4 border-[#32213A] p-6 neo-pop-shadow relative overflow-hidden">
+               <div className="flex justify-between items-center relative z-10">
+                  <div className="text-left">
+                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#32213A]/60">Task Engine</h3>
+                     <p className="text-3xl font-black text-[#32213A] tracking-tighter">{analytics.efficiency}%</p>
+                     <p className="text-[9px] font-black uppercase text-[#32213A]/40 mt-1">{analytics.completedTasks} / {analytics.totalTasks} Done</p>
+                  </div>
+                  {/* Gauge SVG */}
+                  <svg className="w-20 h-20 rotate-[-90deg]">
+                     <circle cx="40" cy="40" r="34" stroke="#32213A" strokeWidth="12" fill="transparent" strokeOpacity="0.1" />
+                     <circle 
+                        cx="40" cy="40" r="34" stroke="#32213A" strokeWidth="12" fill="transparent"
+                        strokeDasharray={213.6}
+                        strokeDashoffset={213.6 - (213.6 * (analytics.efficiency / 100))}
+                        strokeLinecap="round"
+                     />
+                  </svg>
                </div>
-               <div className="p-0">
-                  <div className="grid grid-cols-2 px-4 py-2 border-b border-[#32213A]/10 bg-[#32213A]/5">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40">Category</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40 text-right">Amount</span>
+            </div>
+
+            {/* Category Bars Visualizer */}
+            <div className="bg-white border-4 border-[#32213A] p-6 neo-pop-shadow">
+               <div className="flex justify-between items-end mb-6">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#32213A]/60 text-left">Capital Map</h3>
+                  <div className="text-right">
+                     <span className="text-[8px] font-black uppercase text-[#32213A]/40 block">Grand Total</span>
+                     <span className="text-2xl font-black text-[#32213A] tracking-tighter leading-none">₹{analytics.totalSpend.toLocaleString()}</span>
                   </div>
+               </div>
+               
+               <div className="space-y-5">
                   {Object.entries(analytics.categoryBreakdown).length > 0 ? (
-                    Object.entries(analytics.categoryBreakdown).map(([cat, amt]) => (
-                      <div key={cat} className="grid grid-cols-2 px-4 py-3 border-b border-[#32213A]/5 last:border-0">
-                        <span className="text-[10px] font-black uppercase text-[#32213A]">{cat}</span>
-                        <span className="text-[10px] font-black text-[#32213A] text-right">₹{Number(amt).toLocaleString()}</span>
-                      </div>
-                    ))
+                    Object.entries(analytics.categoryBreakdown)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([cat, amt]) => {
+                         const pct = (amt / Math.max(1, analytics.totalSpend)) * 100;
+                         return (
+                           <div key={cat} className="space-y-1.5 text-left">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-[#32213A]">
+                                 <span className="truncate pr-2">{cat}</span>
+                                 <span>₹{amt.toLocaleString()}</span>
+                              </div>
+                              <div className="h-4 border-2 border-[#32213A] bg-[#32213A]/5 overflow-hidden">
+                                 <div 
+                                    className="h-full bg-[#ADF7B6] border-r-2 border-[#32213A] transition-all duration-700" 
+                                    style={{ width: `${pct}%` }}
+                                 ></div>
+                              </div>
+                           </div>
+                         );
+                      })
                   ) : (
-                    <div className="px-4 py-8 text-center italic text-[#32213A]/20 text-[10px] uppercase font-black">No transactions recorded</div>
+                    <p className="py-8 text-[10px] italic font-black text-[#32213A]/20 uppercase tracking-widest text-center">Zero Transaction Flow</p>
                   )}
-                  <div className="grid grid-cols-2 px-4 py-4 bg-[#32213A] text-white">
-                    <span className="text-[10px] font-black uppercase tracking-widest">Grand Total</span>
-                    <span className="text-[14px] font-black text-right tracking-tighter leading-none">₹{analytics.totalSpend.toLocaleString()}</span>
-                  </div>
+               </div>
+            </div>
+
+            {/* Mood Heat Blocks */}
+            <div className="bg-[#B892FF] border-4 border-[#32213A] p-6 neo-pop-shadow">
+               <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#32213A]/60 text-left mb-6 px-1">Sentiment Pulse</h3>
+               <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(analytics.moodCounts).length > 0 ? (
+                    Object.entries(analytics.moodCounts)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([mood, count]) => (
+                        <div key={mood} className="bg-white border-2 border-[#32213A] p-4 flex flex-col justify-between items-start">
+                           <span className="text-2xl font-black text-[#32213A] leading-none mb-2">{count as any}</span>
+                           <span className="text-[9px] font-black uppercase tracking-widest text-[#32213A]/40 leading-none">{mood}</span>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="col-span-2 py-4 text-center">
+                       <p className="text-[10px] italic font-black text-[#32213A]/40 uppercase">No Emotional Data Found</p>
+                    </div>
+                  )}
                </div>
             </div>
 
             <button 
               onClick={onClearAll}
-              className="w-full py-4 bg-white border-2 border-rose-500/30 text-rose-500 text-[10px] uppercase tracking-[0.4em] font-black hover:bg-rose-500 hover:text-white transition-all mt-4"
+              className="w-full py-4 bg-white border-4 border-[#32213A] text-rose-500 text-[11px] uppercase tracking-[0.4em] font-black hover:bg-rose-500 hover:text-white transition-all neo-pop-shadow active:translate-y-1 active:shadow-none"
             >
               Purge All Data
             </button>
