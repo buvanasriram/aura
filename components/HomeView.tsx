@@ -340,7 +340,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
           ) : (
             recentEntries.map(entry => (
               <div key={entry.id} className="flex gap-3 items-start group">
-                <div className={`w-0.5 h-8 rounded-full shrink-0 ${getIntentColor(entry.intent)}`}></div>
+                {/* WIDENED COLOR BAR FOR BETTER VISUAL EVIDENCE */}
+                <div className={`w-2 h-10 rounded-full shrink-0 ${getIntentColor(entry.intent)} border-[1px] border-[#32213A]/5`}></div>
                 <div className="flex-1 min-w-0 border-b-2 border-[#32213A]/5 pb-2">
                   <div className="flex justify-between items-center mb-0.5">
                     <span className="text-[6px] font-black text-[#32213A]/30 uppercase tracking-widest">
