@@ -2,14 +2,17 @@
 import { AppState, VoiceEntry, Expense, Task, MoodRecord, NoteRecord } from '../types';
 
 const DB_NAME = 'AuraRelationalVault';
-const DB_VERSION = 6; // Incremented for Notes table
+const DB_VERSION = 7; // Incremented for Categories table
 const TABLES = {
   ENTRIES: 'voiceEntries',
   EXPENSES: 'expenses',
   TASKS: 'tasks',
   MOODS: 'moods',
-  NOTES: 'notes'
+  NOTES: 'notes',
+  CATEGORIES: 'categories'
 };
+
+const DEFAULT_CATEGORIES = ['Food', 'Groceries', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Medical', 'Others'];
 
 export class StorageManager {
   private db: IDBDatabase | null = null;
@@ -56,7 +59,7 @@ export class StorageManager {
 
   async loadState(): Promise<AppState> {
     if (!this.db) await this.init();
-    const state: any = { voiceEntries: [], expenses: [], tasks: [], moods: [], notes: [] };
+    const state: any = { voiceEntries: [], expenses: [], tasks: [], moods: [], notes: [], categories: [] };
     const storeNames = Object.values(TABLES);
     
     return new Promise((resolve, reject) => {
@@ -70,8 +73,12 @@ export class StorageManager {
           const results = request.result || [];
           const stateKey = Object.keys(TABLES).find(k => (TABLES as any)[k] === storeName);
           if (stateKey) {
-            const finalKey = stateKey === 'ENTRIES' ? 'voiceEntries' : stateKey.toLowerCase();
-            state[finalKey] = results.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+            if (stateKey === 'CATEGORIES') {
+              state.categories = results.length > 0 ? results.map((r: any) => r.id) : DEFAULT_CATEGORIES;
+            } else {
+              const finalKey = stateKey === 'ENTRIES' ? 'voiceEntries' : stateKey.toLowerCase();
+              state[finalKey] = results.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+            }
           }
           completed++;
           if (completed === storeNames.length) {

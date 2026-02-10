@@ -23,7 +23,6 @@ const App: React.FC = () => {
       try {
         await auraStore.init();
         const savedState = await auraStore.loadState();
-        // Ensure notes array exists
         if (!savedState.notes) savedState.notes = [];
         setState(savedState);
         isReadyRef.current = true;
@@ -55,6 +54,14 @@ const App: React.FC = () => {
 
     let relatedItem: any = null;
     let tableKey: string = 'TASKS';
+
+    // Check for new categories
+    if (processingData.intent === 'EXPENSE' && finalData.category) {
+      if (!state.categories.includes(finalData.category)) {
+        await auraStore.saveItem('CATEGORIES', { id: finalData.category });
+        setState(prev => prev ? ({ ...prev, categories: [...prev.categories, finalData.category] }) : prev);
+      }
+    }
 
     if (processingData.intent === 'EXPENSE') {
       tableKey = 'EXPENSES';
@@ -127,7 +134,8 @@ const App: React.FC = () => {
   const handleClearDatabase = async () => {
     if (confirm("Purge vault? This will erase all persistent records.")) {
       await auraStore.purgeAll();
-      setState({ voiceEntries: [], expenses: [], tasks: [], moods: [], notes: [] });
+      const savedState = await auraStore.loadState();
+      setState(savedState);
     }
   };
 
@@ -166,6 +174,7 @@ const App: React.FC = () => {
           intent={processingData.intent}
           rawText={processingData.rawText}
           entities={processingData.entities}
+          categories={state.categories}
           onConfirm={handleConfirmAction}
           onCancel={() => {
             setProcessingData(null);

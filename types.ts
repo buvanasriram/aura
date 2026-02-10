@@ -12,7 +12,7 @@ export type IntentType = 'EXPENSE' | 'TODO' | 'REMINDER' | 'MOOD' | 'NOTE' | 'UN
 export interface Task {
   id: string;
   title: string;
-  description: string; // "Details" actual text
+  description: string;
   completed: boolean;
   priority: 'high' | 'medium' | 'low';
   category: string;
@@ -35,17 +35,17 @@ export interface Expense {
   entryId: string;
   amount: number;
   currency: string;
-  category: 'Food' | 'Groceries' | 'Transport' | 'Shopping' | 'Bills' | 'Entertainment' | 'Medical' | 'Others';
+  category: string;
   date: string;
-  description: string; // "Details" actual text
+  description: string;
 }
 
 export interface MoodRecord {
   id: string;
   entryId: string;
-  sentiment: string; // "Current Vibe"
-  sentence: string;  // "Headline"
-  reason: string;    // "Actual Text"
+  sentiment: string;
+  sentence: string;
+  reason: string;
   createdAt: number;
 }
 
@@ -63,4 +63,5 @@ export interface AppState {
   tasks: Task[];
   moods: MoodRecord[];
   notes: NoteRecord[];
+  categories: string[];
 }
