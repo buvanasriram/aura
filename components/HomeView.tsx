@@ -290,15 +290,23 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       </header>
 
+      {/* REFINED ALERTS SECTION: ALL ALERTS IN ONE BOX WITH DATES */}
       {upcomingAlerts.length > 0 && (
-        <div className="mb-3 shrink-0 space-y-1.5 text-left">
-           <h3 className="text-[8px] font-black uppercase tracking-[0.3em] text-[#32213A]/40 px-2">Upcoming Alerts</h3>
-           {upcomingAlerts.map(alert => (
-             <div key={alert.id} className="bg-[#F7EF81] p-2.5 rounded-xl flex items-center gap-3 border-2 border-[#32213A]">
-               <NeoPopIcon type="ALERTS" className="w-4 h-4" colorOverride="#32213A" />
-               <p className="text-[10px] font-black text-[#32213A] truncate leading-tight">{alert.title}</p>
-             </div>
-           ))}
+        <div className="mb-3 shrink-0 text-left">
+           <h3 className="text-[8px] font-black uppercase tracking-[0.3em] text-[#32213A]/40 px-2 mb-1.5">Upcoming Alerts</h3>
+           <div className="bg-[#F7EF81] p-3 rounded-[1.5rem] border-[3px] border-[#32213A] shadow-[3px_3px_0px_#32213A] space-y-2">
+             {upcomingAlerts.map((alert, index) => (
+               <div key={alert.id} className={`flex items-start gap-3 ${index > 0 ? 'pt-2 border-t-[1.5px] border-[#32213A]/10' : ''}`}>
+                 <NeoPopIcon type="ALERTS" className="w-4 h-4 mt-0.5" colorOverride="#32213A" />
+                 <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black text-[#32213A] truncate leading-tight mb-0.5">{alert.title}</p>
+                    <span className="text-[7px] font-black text-[#32213A]/50 uppercase tracking-widest">
+                       Due: {alert.date || 'TBD'}
+                    </span>
+                 </div>
+               </div>
+             ))}
+           </div>
         </div>
       )}
 
@@ -340,7 +348,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
           ) : (
             recentEntries.map(entry => (
               <div key={entry.id} className="flex gap-3 items-start group">
-                {/* WIDENED COLOR BAR FOR BETTER VISUAL EVIDENCE */}
                 <div className={`w-2 h-10 rounded-full shrink-0 ${getIntentColor(entry.intent)} border-[1px] border-[#32213A]/5`}></div>
                 <div className="flex-1 min-w-0 border-b-2 border-[#32213A]/5 pb-2">
                   <div className="flex justify-between items-center mb-0.5">
