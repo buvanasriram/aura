@@ -14,48 +14,6 @@ interface HistoryViewProps {
 
 type VaultMode = 'ARCHIVES' | 'INTELLIGENCE';
 
-const NeoPopIcon = ({ type, className }: { type: string, className?: string }) => {
-  const iconBase = `shrink-0 ${className || ''}`;
-  const size = "24"; 
-
-  switch (type) {
-    case 'EXPENSE': 
-      return (
-        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3" y="6" width="18" height="12" rx="4" fill="#ADF7B6" stroke="#32213A" strokeWidth="2.5"/>
-          <circle cx="12" cy="12" r="3" fill="white" stroke="#32213A" strokeWidth="2"/>
-        </svg>
-      );
-    case 'REMINDER':
-    case 'ALERTS':
-      return (
-        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M6 17H18V10C18 6.68629 15.3137 4 12 4C8.68629 4 6 6.68629 6 10V17Z" fill="#F7EF81" stroke="#32213A" strokeWidth="2.5" strokeLinejoin="round"/>
-          <path d="M4 17H20" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
-          <path d="M10 20C10 21.1046 10.8954 22 12 22C13.1046 22 14 21.1046 14 20" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
-        </svg>
-      );
-    case 'TODO':
-    case 'TASKS':
-      return (
-        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="4" y="4" width="16" height="16" rx="3" fill="#ADD2C2" stroke="#32213A" strokeWidth="2.5"/>
-          <path d="M8 12L11 15L16 9" stroke="#32213A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      );
-    case 'MOOD':
-    case 'PULSE':
-      return (
-        <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9" fill="#B892FF" stroke="#32213A" strokeWidth="2.5"/>
-          <path d="M7 12L9 12L11 8L13 16L15 12L17 12" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      );
-    default:
-      return null;
-  }
-};
-
 const IntentTable = ({ intent, entries }: { intent: IntentType, entries: VoiceEntry[] }) => {
   const getColumns = () => {
     switch (intent) {
@@ -63,7 +21,17 @@ const IntentTable = ({ intent, entries }: { intent: IntentType, entries: VoiceEn
       case 'TODO':
       case 'REMINDER': return ['Due Date', 'Headline', 'Priority', 'Status'];
       case 'MOOD': return ['Date', 'Vibe', 'Headline', 'Reason'];
-      default: return ['Date', 'Snapshot', 'Vibe', 'Raw Text'];
+      default: return ['Date', 'Headline', 'Vibe', 'Notes'];
+    }
+  };
+
+  const getGridStyle = () => {
+    switch (intent) {
+      case 'EXPENSE': return { gridTemplateColumns: '75px 0.8fr 75px 1.5fr' };
+      case 'TODO':
+      case 'REMINDER': return { gridTemplateColumns: '75px 1.5fr 60px 55px' };
+      case 'MOOD': return { gridTemplateColumns: '75px 65px 1fr 1.5fr' };
+      default: return { gridTemplateColumns: '75px 1fr 65px 1.5fr' };
     }
   };
 
@@ -115,6 +83,7 @@ const IntentTable = ({ intent, entries }: { intent: IntentType, entries: VoiceEn
   };
 
   const columns = getColumns();
+  const gridStyle = getGridStyle();
 
   if (entries.length === 0) {
     return (
@@ -126,14 +95,21 @@ const IntentTable = ({ intent, entries }: { intent: IntentType, entries: VoiceEn
 
   return (
     <div className="bg-white border-2 border-[#32213A] overflow-hidden">
-      <div className={`grid grid-cols-4 ${getIntentColor()} px-4 py-3 border-b-2 border-[#32213A]`}>
+      <div 
+        style={{ display: 'grid', ...gridStyle }} 
+        className={`${getIntentColor()} px-3 py-3 border-b-2 border-[#32213A]`}
+      >
         {columns.map(col => (
           <span key={col} className="text-[8px] font-black uppercase tracking-widest text-[#32213A] truncate pr-1">{col}</span>
         ))}
       </div>
-      <div className="max-h-[60vh] overflow-y-auto no-scrollbar">
+      <div className="max-h-[58vh] overflow-y-auto no-scrollbar">
         {entries.map((entry, idx) => (
-          <div key={entry.id} className={`grid grid-cols-4 px-4 py-3 items-start border-b border-[#32213A]/10 last:border-0 ${idx % 2 === 1 ? 'bg-[#D4D6B9]/10' : 'bg-white'}`}>
+          <div 
+            key={entry.id} 
+            style={{ display: 'grid', ...gridStyle }}
+            className={`px-3 py-3 items-start border-b border-[#32213A]/10 last:border-0 ${idx % 2 === 1 ? 'bg-[#D4D6B9]/10' : 'bg-white'}`}
+          >
             {getRowData(entry).map((val, i) => (
               <span key={i} className="text-[10px] font-black text-[#32213A] uppercase tracking-tighter leading-tight break-words whitespace-normal pr-2">
                 {val}
@@ -150,53 +126,72 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
   const [mode, setMode] = useState<VaultMode>('ARCHIVES');
   const [filter, setFilter] = useState<IntentType>('EXPENSE');
 
-  const filteredEntries = useMemo(() => {
-    return entries.filter(e => e.intent === filter);
-  }, [entries, filter]);
+  // Date Filtering State
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const todayStr = now.toISOString().split('T')[0];
+
+  const [fromDate, setFromDate] = useState(firstDayOfMonth);
+  const [toDate, setToDate] = useState(todayStr);
 
   const analytics = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const dayOfMonth = now.getDate();
+    const start = new Date(fromDate).getTime();
+    const end = new Date(toDate).setHours(23, 59, 59, 999);
 
-    const monthlyBurn = expenses.reduce((sum, e) => {
-      const d = new Date(e.date);
-      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-        return sum + e.amount;
-      }
-      return sum;
-    }, 0);
+    // Filtered source data based on date range
+    const filteredExpenses = expenses.filter(e => {
+      const d = new Date(e.date).getTime();
+      return d >= start && d <= end;
+    });
 
-    const dailyAvg = (monthlyBurn / Math.max(1, dayOfMonth)).toFixed(0);
+    const filteredMoods = moods.filter(m => {
+      const d = new Date(m.createdAt).getTime();
+      return d >= start && d <= end;
+    });
 
-    const categoryBreakdown = expenses.reduce((acc: any, e) => {
+    const filteredTasks = tasks.filter(t => {
+      const d = new Date(t.date).getTime();
+      return d >= start && d <= end;
+    });
+
+    // Calculations
+    const totalSpend = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const categoryBreakdown = filteredExpenses.reduce((acc: any, e) => {
       acc[e.category] = (acc[e.category] || 0) + e.amount;
       return acc;
     }, {});
 
-    // Enhanced Analytics
-    const moodFreq = moods.reduce((acc: any, m) => {
+    const moodCounts = filteredMoods.reduce((acc: any, m) => {
       acc[m.sentiment] = (acc[m.sentiment] || 0) + 1;
       return acc;
     }, {});
-    const topMood = Object.entries(moodFreq).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || 'Neutral';
 
-    const completedTasks = tasks.filter(t => t.completed).length;
-    const taskEfficiency = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+    const pendingTasks = filteredTasks.filter(t => !t.completed).length;
+    const completedTasks = filteredTasks.filter(t => t.completed).length;
 
-    return { monthlyBurn, dailyAvg, categoryBreakdown, topMood, taskEfficiency };
-  }, [expenses, moods, tasks]);
+    return { 
+      totalSpend, 
+      categoryBreakdown, 
+      moodCounts, 
+      pendingTasks, 
+      completedTasks 
+    };
+  }, [expenses, moods, tasks, fromDate, toDate]);
+
+  // Fix: Added filteredEntries to solve the 'Cannot find name filteredEntries' error at line 228
+  const filteredEntries = useMemo(() => {
+    return entries.filter(e => e.intent === filter);
+  }, [entries, filter]);
 
   const intents: IntentType[] = ['EXPENSE', 'TODO', 'REMINDER', 'MOOD', 'NOTE'];
 
   return (
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#D4D6B9] max-w-md mx-auto border-x-4 border-[#32213A]/5">
-      <header className="px-6 py-8 flex justify-between items-center">
+      <header className="px-6 py-8 flex justify-between items-center shrink-0">
         <div className="text-left">
           <h2 className="text-3xl font-black tracking-tighter text-[#32213A]">Detailed notes</h2>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
            <button onClick={onExport} title="Export Backup" className="w-10 h-10 bg-white border-2 border-[#32213A] rounded-xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow transition-all">
              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"/></svg>
            </button>
@@ -206,7 +201,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
         </div>
       </header>
 
-      <div className="flex px-6 gap-3 mb-6">
+      <div className="flex px-6 gap-3 mb-4 shrink-0">
         <button 
           onClick={() => setMode('ARCHIVES')}
           className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl border-4 transition-all ${mode === 'ARCHIVES' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
@@ -224,7 +219,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
       <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-12">
         {mode === 'ARCHIVES' ? (
           <div className="space-y-6">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
               {intents.map(f => (
                 <button 
                   key={f}
@@ -235,59 +230,91 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
                 </button>
               ))}
             </div>
-
             <IntentTable intent={filter} entries={filteredEntries} />
           </div>
         ) : (
           <div className="space-y-6">
-            {/* 2x2 Key Metrics Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
-                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Monthly Burn</span>
-                <p className="text-xl font-black text-[#32213A]">₹{analytics.monthlyBurn}</p>
+            {/* Date Range Picker */}
+            <div className="bg-white border-2 border-[#32213A] p-4 flex gap-3">
+              <div className="flex-1 space-y-1">
+                <label className="text-[8px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">From</label>
+                <input 
+                  type="date" 
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-full bg-[#32213A]/5 border border-[#32213A] px-2 py-2 text-[10px] font-black text-[#32213A]"
+                />
               </div>
-              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
-                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Efficiency</span>
-                <p className="text-xl font-black text-[#32213A]">{analytics.taskEfficiency}%</p>
-              </div>
-              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
-                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Sentiment</span>
-                <p className="text-xl font-black text-[#32213A] uppercase tracking-tighter truncate">{analytics.topMood}</p>
-              </div>
-              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
-                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Daily Avg</span>
-                <p className="text-xl font-black text-[#32213A]">₹{analytics.dailyAvg}</p>
+              <div className="flex-1 space-y-1">
+                <label className="text-[8px] font-black uppercase text-[#32213A]/40 tracking-widest px-1">To</label>
+                <input 
+                  type="date" 
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-full bg-[#32213A]/5 border border-[#32213A] px-2 py-2 text-[10px] font-black text-[#32213A]"
+                />
               </div>
             </div>
 
-            {/* Spend Distribution */}
-            <div className="bg-white border-2 border-[#32213A] p-6 text-left">
-              <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#32213A]/40 font-black mb-5">Expense Breakdown</h3>
-              <div className="space-y-4">
-                {Object.entries(analytics.categoryBreakdown).length > 0 ? (
-                  Object.entries(analytics.categoryBreakdown).sort((a: any, b: any) => b[1] - a[1]).map(([cat, amt]: any) => (
-                    <div key={cat} className="space-y-1.5">
-                      <div className="flex justify-between text-[10px] font-black text-[#32213A] uppercase tracking-tighter">
-                        <span>{cat}</span>
-                        <span>₹{amt}</span>
-                      </div>
-                      <div className="h-2 bg-[#D4D6B9]/30 border border-[#32213A]/10 overflow-hidden">
-                        <div 
-                          className="h-full bg-[#ADF7B6]" 
-                          style={{ width: `${Math.min(100, (amt / Math.max(1, analytics.monthlyBurn)) * 100)}%` }}
-                        ></div>
-                      </div>
+            {/* Task Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-[#ADD2C2] border-2 border-[#32213A] p-5 text-left">
+                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/60 font-black block mb-1">Pending Tasks</span>
+                <p className="text-3xl font-black text-[#32213A]">{analytics.pendingTasks}</p>
+              </div>
+              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
+                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Completed</span>
+                <p className="text-3xl font-black text-[#32213A]">{analytics.completedTasks}</p>
+              </div>
+            </div>
+
+            {/* Mood Frequency */}
+            <div className="bg-[#B892FF] border-2 border-[#32213A] p-5 text-left">
+              <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#32213A]/60 font-black mb-4 px-1">Mood Distribution</h3>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(analytics.moodCounts).length > 0 ? (
+                  Object.entries(analytics.moodCounts).map(([mood, count]) => (
+                    <div key={mood} className="bg-white px-3 py-1.5 border-2 border-[#32213A] flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-tighter text-[#32213A]">{mood}</span>
+                      <div className="w-5 h-5 bg-[#32213A] text-white rounded-full flex items-center justify-center text-[9px] font-black leading-none">{count as any}</div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-[10px] italic text-[#32213A]/20 font-black uppercase tracking-widest">No transaction data</p>
+                  <p className="text-[9px] italic text-[#32213A]/60 font-black uppercase">No mood reflections in range</p>
                 )}
               </div>
             </div>
 
+            {/* Category-wise Expenses */}
+            <div className="bg-white border-2 border-[#32213A] overflow-hidden">
+               <div className="bg-[#ADF7B6] px-4 py-3 border-b-2 border-[#32213A]">
+                 <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#32213A] font-black">Capital Utilization</h3>
+               </div>
+               <div className="p-0">
+                  <div className="grid grid-cols-2 px-4 py-2 border-b border-[#32213A]/10 bg-[#32213A]/5">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40">Category</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40 text-right">Amount</span>
+                  </div>
+                  {Object.entries(analytics.categoryBreakdown).length > 0 ? (
+                    Object.entries(analytics.categoryBreakdown).map(([cat, amt]) => (
+                      <div key={cat} className="grid grid-cols-2 px-4 py-3 border-b border-[#32213A]/5 last:border-0">
+                        <span className="text-[10px] font-black uppercase text-[#32213A]">{cat}</span>
+                        <span className="text-[10px] font-black text-[#32213A] text-right">₹{Number(amt).toLocaleString()}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-8 text-center italic text-[#32213A]/20 text-[10px] uppercase font-black">No transactions recorded</div>
+                  )}
+                  <div className="grid grid-cols-2 px-4 py-4 bg-[#32213A] text-white">
+                    <span className="text-[10px] font-black uppercase tracking-widest">Grand Total</span>
+                    <span className="text-[14px] font-black text-right tracking-tighter leading-none">₹{analytics.totalSpend.toLocaleString()}</span>
+                  </div>
+               </div>
+            </div>
+
             <button 
               onClick={onClearAll}
-              className="w-full py-4 bg-white border-2 border-rose-500/30 text-rose-500 text-[10px] uppercase tracking-[0.4em] font-black hover:bg-rose-500 hover:text-white transition-all mt-6"
+              className="w-full py-4 bg-white border-2 border-rose-500/30 text-rose-500 text-[10px] uppercase tracking-[0.4em] font-black hover:bg-rose-500 hover:text-white transition-all mt-4"
             >
               Purge All Data
             </button>
