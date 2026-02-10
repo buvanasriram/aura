@@ -126,9 +126,17 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
   const [mode, setMode] = useState<VaultMode>('ARCHIVES');
   const [filter, setFilter] = useState<IntentType>('EXPENSE');
 
+  // Logic to get local date strings to avoid UTC offset issues
+  const getLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const todayStr = now.toISOString().split('T')[0];
+  const firstDayOfMonth = getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+  const todayStr = getLocalDateString(now);
 
   const [fromDate, setFromDate] = useState(firstDayOfMonth);
   const [toDate, setToDate] = useState(todayStr);
