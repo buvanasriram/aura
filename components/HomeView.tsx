@@ -40,8 +40,8 @@ const NeoPopIcon = ({ type, className, colorOverride }: { type: string, classNam
     case 'ALERTS':
       return (
         <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 8C18 4.68629 15.3137 2 12 2C8.68629 2 6 4.68629 6 8V11C6 11.6644 5.71554 12.2961 5.21115 12.7334C4.43632 13.4063 4 14.3828 4 15.4118V16C4 16.5523 4.44772 17 5 17H19C19.5523 17 20 16.5523 20 16V15.4118C20 14.3828 19.5637 13.4063 18.7889 12.7334C18.2845 12.2961 18 11.6644 18 11V8Z" fill={colorOverride || "#F7EF81"} stroke="#32213A" strokeWidth="2.5"/>
-          <path d="M10 19C10 20.1046 10.8954 21 12 21C13.1046 21 14 20.1046 14 19" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M12 3C10.3 3 9 4.3 9 6V6.5C6.7 7.2 5 9.3 5 12V16H4C3.4 16 3 16.4 3 17C3 17.6 3.4 18 4 18H20C20.6 18 21 17.6 21 17C21 16.4 20.6 16 20 16H19V12C19 9.3 17.3 7.2 15 6.5V6C15 4.3 13.7 3 12 3Z" fill={colorOverride || "#F7EF81"} stroke="#32213A" strokeWidth="2.5" strokeLinejoin="round"/>
+          <path d="M10 20C10 21.1 10.9 22 12 22C13.1 22 14 21.1 14 20" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       );
     case 'PULSE':

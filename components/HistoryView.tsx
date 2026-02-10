@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { VoiceEntry, Expense, MoodRecord, Task } from '../types';
+import { VoiceEntry, Expense, MoodRecord, Task, IntentType } from '../types';
 
 interface HistoryViewProps {
   entries: VoiceEntry[];
@@ -16,7 +16,7 @@ type VaultMode = 'ARCHIVES' | 'INTELLIGENCE';
 
 const NeoPopIcon = ({ type, className }: { type: string, className?: string }) => {
   const iconBase = `shrink-0 neo-pop-shadow ${className || ''}`;
-  const size = "24"; // Force a base size for history icons
+  const size = "24"; 
 
   switch (type) {
     case 'EXPENSE': 
@@ -27,13 +27,16 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
         </svg>
       );
     case 'REMINDER':
+    case 'ALERTS':
       return (
         <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 8C18 4.68629 15.3137 2 12 2C8.68629 2 6 4.68629 6 8V11C6 11.6644 5.71554 12.2961 5.21115 12.7334C4.43632 13.4063 4 14.3828 4 15.4118V16C4 16.5523 4.44772 17 5 17H19C19.5523 17 20 16.5523 20 16V15.4118C20 14.3828 19.5637 13.4063 18.7889 12.7334C18.2845 12.2961 18 11.6644 18 11V8Z" fill="#F7EF81" stroke="#32213A" strokeWidth="2.5"/>
-          <path d="M10 19C10 20.1046 10.8954 21 12 21C13.1046 21 14 20.1046 14 19" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M6 17H18V10C18 6.68629 15.3137 4 12 4C8.68629 4 6 6.68629 6 10V17Z" fill="#F7EF81" stroke="#32213A" strokeWidth="2.5" strokeLinejoin="round"/>
+          <path d="M4 17H20" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
+          <path d="M10 20C10 21.1046 10.8954 22 12 22C13.1046 22 14 21.1046 14 20" stroke="#32213A" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
       );
     case 'TODO':
+    case 'TASKS':
       return (
         <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <rect x="4" y="4" width="16" height="16" rx="3" fill="#ADD2C2" stroke="#32213A" strokeWidth="2.5"/>
@@ -41,6 +44,7 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
         </svg>
       );
     case 'MOOD':
+    case 'PULSE':
       return (
         <svg className={iconBase} width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="9" fill="#B892FF" stroke="#32213A" strokeWidth="2.5"/>
@@ -49,6 +53,55 @@ const NeoPopIcon = ({ type, className }: { type: string, className?: string }) =
       );
     default:
       return null;
+  }
+};
+
+const DataRow = ({ label, value, dark }: { label: string, value: any, dark?: boolean }) => (
+  <div className={`flex justify-between items-center py-2 border-b border-[#32213A]/5 last:border-0`}>
+    <span className={`text-[8px] font-black uppercase tracking-widest ${dark ? 'text-[#32213A]/40' : 'text-[#32213A]/50'}`}>{label}</span>
+    <span className="text-[10px] font-black text-[#32213A] truncate max-w-[180px]">{value || 'N/A'}</span>
+  </div>
+);
+
+const IntentDetails = ({ entry }: { entry: VoiceEntry }) => {
+  const e = entry.extractedEntities;
+  const intent = entry.intent;
+
+  switch (intent) {
+    case 'EXPENSE':
+      return (
+        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
+          <DataRow label="Amount" value={`${e.amount || 0} INR`} dark />
+          <DataRow label="Category" value={e.category} dark />
+          <DataRow label="Target Date" value={e.date} dark />
+          <DataRow label="Details" value={e.headline || e.details} dark />
+        </div>
+      );
+    case 'TODO':
+    case 'REMINDER':
+      return (
+        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
+          <DataRow label="Task" value={e.headline} dark />
+          <DataRow label="Due Date" value={e.date} dark />
+          <DataRow label="Priority" value={e.priority} dark />
+          <DataRow label="Status" value={e.completed ? 'Done' : 'Pending'} dark />
+        </div>
+      );
+    case 'MOOD':
+      return (
+        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
+          <DataRow label="Vibe" value={e.vibe} dark />
+          <DataRow label="Insight" value={e.headline} dark />
+          <DataRow label="Context" value={e.reason || e.details} dark />
+        </div>
+      );
+    default:
+      return (
+        <div className="bg-white/40 rounded-2xl p-3 border-2 border-[#32213A]/10 mt-3">
+          <DataRow label="Snapshot" value={e.headline || 'Note Captured'} dark />
+          <DataRow label="Vibe" value={e.vibe} dark />
+        </div>
+      );
   }
 };
 
@@ -94,10 +147,10 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40">Persistent Data</p>
         </div>
         <div className="flex items-center gap-3">
-           <button onClick={onExport} className="w-12 h-12 bg-white border-2 border-[#32213A] rounded-2xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow transition-all">
+           <button onClick={onExport} title="Export Backup" className="w-12 h-12 bg-white border-2 border-[#32213A] rounded-2xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow transition-all">
              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
            </button>
-           <button onClick={onBack} className="w-12 h-12 bg-[#32213A] rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all">
+           <button onClick={onBack} title="Exit Vault" className="w-12 h-12 bg-[#32213A] rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all">
               <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
            </button>
         </div>
@@ -114,7 +167,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
           onClick={() => setMode('ARCHIVES')}
           className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-2xl border-4 transition-all ${mode === 'ARCHIVES' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
         >
-          History
+          Archives
         </button>
       </div>
 
@@ -178,7 +231,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
             </div>
 
             <div className="space-y-4">
-              {filteredEntries.map(entry => {
+              {filteredEntries.length === 0 ? (
+                <div className="py-20 text-center opacity-20 italic">No records in this archive.</div>
+              ) : filteredEntries.map(entry => {
                 const isExpense = entry.intent === 'EXPENSE';
                 const isReminder = entry.intent === 'REMINDER';
                 const isTodo = entry.intent === 'TODO';
@@ -191,15 +246,21 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
                 if (isMood) bgColor = 'bg-[#B892FF]';
 
                 return (
-                  <div key={entry.id} className={`border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A] ${bgColor} text-left transition-transform active:scale-[0.98]`}>
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center gap-3">
-                         <NeoPopIcon type={entry.intent} className="w-6 h-6 shadow-none" />
-                         <span className="text-[9px] font-black uppercase text-[#32213A]/40 tracking-widest">{entry.intent}</span>
+                  <div key={entry.id} className={`border-4 border-[#32213A] p-5 rounded-[2.5rem] shadow-[4px_4px_0px_#32213A] ${bgColor} text-left transition-transform active:scale-[0.98]`}>
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                         <NeoPopIcon type={entry.intent} className="w-5 h-5 shadow-none" />
+                         <span className="text-[9px] font-black uppercase text-[#32213A]/60 tracking-widest">{entry.intent}</span>
                       </div>
-                      <span className="text-[9px] text-[#32213A]/30 font-black uppercase">{new Date(entry.createdAt).toLocaleDateString()}</span>
+                      <span className="text-[8px] text-[#32213A]/40 font-black uppercase">{new Date(entry.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <p className="text-sm text-[#32213A] font-bold leading-tight">"{entry.rawText}"</p>
+                    
+                    <IntentDetails entry={entry} />
+
+                    <div className="mt-4 pt-3 border-t border-[#32213A]/10">
+                      <span className="text-[7px] font-black uppercase tracking-widest text-[#32213A]/30 block mb-1">Transcript</span>
+                      <p className="text-[11px] text-[#32213A]/70 font-bold leading-tight line-clamp-2">"{entry.rawText}"</p>
+                    </div>
                   </div>
                 );
               })}
