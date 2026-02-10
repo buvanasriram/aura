@@ -168,7 +168,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   };
 
   const processText = async (text: string) => {
-    // Robust key check: Ensure process.env is synced with the window shim
     const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
     
     if (!apiKey) {
@@ -256,7 +255,10 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
 
       <header className="shrink-0 pt-8 pb-6 flex justify-between items-start z-50">
         <div className="text-left">
-          <h1 className="text-4xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-4xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
+            <span className="bg-[#32213A] text-white text-[7px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">v0.1</span>
+          </div>
           <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mt-1">Smart Assist</p>
         </div>
         
