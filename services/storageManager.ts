@@ -1,8 +1,9 @@
 
 import { AppState, VoiceEntry, Expense, Task, MoodRecord, NoteRecord } from '../types';
+import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 
 const DB_NAME = 'AuraRelationalVault';
-const DB_VERSION = 7; // Incremented for Categories table
+const DB_VERSION = 7; 
 const TABLES = {
   ENTRIES: 'voiceEntries',
   EXPENSES: 'expenses',
@@ -102,13 +103,65 @@ export class StorageManager {
 
   async exportBackup() {
     const state = await this.loadState();
-    const data = { app: "Aura", exportedAt: new Date().toISOString(), database: state };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `aura_vault_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+    
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+
+    // 1. Expenses Sheet
+    const expenseData = state.expenses.map(e => ({
+      Date: e.date,
+      Amount: e.amount,
+      Currency: e.currency,
+      Category: e.category,
+      Description: e.description
+    }));
+    const wsExpenses = XLSX.utils.json_to_sheet(expenseData);
+    XLSX.utils.book_append_sheet(wb, wsExpenses, "Expenses");
+
+    // 2. Tasks Sheet
+    const taskData = state.tasks.map(t => ({
+      Date: t.date,
+      Title: t.title,
+      Description: t.description,
+      Category: t.category,
+      Priority: t.priority,
+      Status: t.completed ? 'Completed' : 'Pending',
+      Created_At: new Date(t.createdAt).toLocaleString()
+    }));
+    const wsTasks = XLSX.utils.json_to_sheet(taskData);
+    XLSX.utils.book_append_sheet(wb, wsTasks, "Tasks & Reminders");
+
+    // 3. Moods Sheet
+    const moodData = state.moods.map(m => ({
+      Date: new Date(m.createdAt).toLocaleDateString(),
+      Sentiment: m.sentiment,
+      Headline: m.sentence,
+      Reason: m.reason
+    }));
+    const wsMoods = XLSX.utils.json_to_sheet(moodData);
+    XLSX.utils.book_append_sheet(wb, wsMoods, "Mood Tracker");
+
+    // 4. Notes Sheet
+    const noteData = state.notes.map(n => ({
+      Date: n.date,
+      Text: n.text,
+      Created_At: new Date(n.createdAt).toLocaleString()
+    }));
+    const wsNotes = XLSX.utils.json_to_sheet(noteData);
+    XLSX.utils.book_append_sheet(wb, wsNotes, "Notes");
+
+    // 5. Raw Entries (System Audit)
+    const entryData = state.voiceEntries.map(entry => ({
+      Timestamp: new Date(entry.createdAt).toLocaleString(),
+      Intent: entry.intent,
+      Text: entry.rawText,
+      Confidence: entry.confidence
+    }));
+    const wsEntries = XLSX.utils.json_to_sheet(entryData);
+    XLSX.utils.book_append_sheet(wb, wsEntries, "System Logs");
+
+    // Write file
+    XLSX.writeFile(wb, `aura_vault_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 }
 
