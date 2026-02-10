@@ -163,8 +163,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
   };
 
   const processText = async (text: string) => {
-    // Relying on the shim to provide process.env.API_KEY
-    if (!process.env.API_KEY) {
+    // Robust key check: Ensure process.env is synced with the window shim
+    const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
+    
+    if (!apiKey) {
+      console.error("[AURA] API Key check failed. process.env.API_KEY is falsy.");
       setErrorStatus("API KEY MISSING");
       return;
     }
@@ -172,6 +175,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     setInternalProcessing(true);
 
     try {
+      // Use standard initialization: apiKey from process.env.API_KEY
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
