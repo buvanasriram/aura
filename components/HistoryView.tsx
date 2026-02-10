@@ -15,7 +15,7 @@ interface HistoryViewProps {
 type VaultMode = 'ARCHIVES' | 'INTELLIGENCE';
 
 const NeoPopIcon = ({ type, className }: { type: string, className?: string }) => {
-  const iconBase = `shrink-0 neo-pop-shadow ${className || ''}`;
+  const iconBase = `shrink-0 ${className || ''}`;
   const size = "24"; 
 
   switch (type) {
@@ -104,28 +104,38 @@ const IntentTable = ({ intent, entries }: { intent: IntentType, entries: VoiceEn
     }
   };
 
+  const getIntentColor = () => {
+    switch (intent) {
+      case 'EXPENSE': return 'bg-[#ADF7B6]';
+      case 'TODO': return 'bg-[#ADD2C2]';
+      case 'REMINDER': return 'bg-[#F7EF81]';
+      case 'MOOD': return 'bg-[#B892FF]';
+      default: return 'bg-white';
+    }
+  };
+
   const columns = getColumns();
 
   if (entries.length === 0) {
     return (
-      <div className="py-20 text-center border-4 border-dashed border-[#32213A]/10 rounded-[2.5rem]">
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#32213A]/30 italic">Vault Empty</p>
+      <div className="py-20 text-center border-2 border-dashed border-[#32213A]/20">
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#32213A]/30 italic">No records found</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border-4 border-[#32213A] rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] overflow-hidden">
-      <div className="grid grid-cols-4 bg-[#32213A] text-white px-4 py-4 border-b-2 border-[#32213A]">
+    <div className="bg-white border-2 border-[#32213A] overflow-hidden">
+      <div className={`grid grid-cols-4 ${getIntentColor()} px-4 py-3 border-b-2 border-[#32213A]`}>
         {columns.map(col => (
-          <span key={col} className="text-[7.5px] font-black uppercase tracking-widest truncate pr-1">{col}</span>
+          <span key={col} className="text-[8px] font-black uppercase tracking-widest text-[#32213A] truncate pr-1">{col}</span>
         ))}
       </div>
-      <div className="max-h-[500px] overflow-y-auto no-scrollbar">
+      <div className="max-h-[60vh] overflow-y-auto no-scrollbar">
         {entries.map((entry, idx) => (
-          <div key={entry.id} className={`grid grid-cols-4 px-4 py-4 items-center border-b-2 border-[#32213A]/5 last:border-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#D4D6B9]/15'}`}>
+          <div key={entry.id} className={`grid grid-cols-4 px-4 py-3 items-start border-b border-[#32213A]/10 last:border-0 ${idx % 2 === 1 ? 'bg-[#D4D6B9]/10' : 'bg-white'}`}>
             {getRowData(entry).map((val, i) => (
-              <span key={i} className="text-[9.5px] font-black text-[#32213A] truncate pr-2 uppercase tracking-tighter">
+              <span key={i} className="text-[10px] font-black text-[#32213A] uppercase tracking-tighter leading-tight break-words whitespace-normal pr-2">
                 {val}
               </span>
             ))}
@@ -165,8 +175,18 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
       return acc;
     }, {});
 
-    return { monthlyBurn, dailyAvg, categoryBreakdown };
-  }, [expenses]);
+    // Enhanced Analytics
+    const moodFreq = moods.reduce((acc: any, m) => {
+      acc[m.sentiment] = (acc[m.sentiment] || 0) + 1;
+      return acc;
+    }, {});
+    const topMood = Object.entries(moodFreq).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || 'Neutral';
+
+    const completedTasks = tasks.filter(t => t.completed).length;
+    const taskEfficiency = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+    return { monthlyBurn, dailyAvg, categoryBreakdown, topMood, taskEfficiency };
+  }, [expenses, moods, tasks]);
 
   const intents: IntentType[] = ['EXPENSE', 'TODO', 'REMINDER', 'MOOD', 'NOTE'];
 
@@ -174,29 +194,28 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-[#D4D6B9] max-w-md mx-auto border-x-4 border-[#32213A]/5">
       <header className="px-6 py-8 flex justify-between items-center">
         <div className="text-left">
-          <h2 className="text-3xl font-black tracking-tighter text-[#32213A]">Vault</h2>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40">Persistent Data</p>
+          <h2 className="text-3xl font-black tracking-tighter text-[#32213A]">Detailed notes</h2>
         </div>
         <div className="flex items-center gap-3">
-           <button onClick={onExport} title="Export Backup" className="w-12 h-12 bg-white border-2 border-[#32213A] rounded-2xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow transition-all">
-             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"/></svg>
+           <button onClick={onExport} title="Export Backup" className="w-10 h-10 bg-white border-2 border-[#32213A] rounded-xl flex items-center justify-center text-[#32213A] active:scale-90 neo-pop-shadow transition-all">
+             <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"/></svg>
            </button>
-           <button onClick={onBack} title="Exit Vault" className="w-12 h-12 bg-[#32213A] rounded-2xl flex items-center justify-center text-white active:scale-90 transition-all">
-              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+           <button onClick={onBack} title="Exit" className="w-10 h-10 bg-[#32213A] rounded-xl flex items-center justify-center text-white active:scale-90 transition-all">
+              <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M6 18L18 6M6 6l12 12" /></svg>
            </button>
         </div>
       </header>
 
-      <div className="flex px-6 gap-4 mb-6">
+      <div className="flex px-6 gap-3 mb-6">
         <button 
           onClick={() => setMode('ARCHIVES')}
-          className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-2xl border-4 transition-all ${mode === 'ARCHIVES' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
+          className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl border-4 transition-all ${mode === 'ARCHIVES' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
         >
           Archives
         </button>
         <button 
           onClick={() => setMode('INTELLIGENCE')}
-          className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-2xl border-4 transition-all ${mode === 'INTELLIGENCE' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
+          className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-black rounded-xl border-4 transition-all ${mode === 'INTELLIGENCE' ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white text-[#32213A]/40 border-[#32213A]/10'}`}
         >
           Insights
         </button>
@@ -210,7 +229,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
                 <button 
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`shrink-0 px-6 py-2 rounded-full text-[8.5px] uppercase tracking-widest font-black border-2 transition-all flex items-center gap-2 ${filter === f ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white border-[#32213A]/15 text-[#32213A]/40'}`}
+                  className={`shrink-0 px-5 py-2 rounded-full text-[9px] uppercase tracking-widest font-black border-2 transition-all flex items-center gap-2 ${filter === f ? 'bg-[#32213A] text-white border-[#32213A]' : 'bg-white border-[#32213A]/15 text-[#32213A]/40'}`}
                 >
                   {f}
                 </button>
@@ -221,46 +240,56 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ entries, expenses, moo
           </div>
         ) : (
           <div className="space-y-6">
+            {/* 2x2 Key Metrics Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] text-left">
-                <span className="text-[9px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-2">Monthly Spend</span>
-                <p className="text-2xl font-black text-[#32213A]">₹{analytics.monthlyBurn}</p>
+              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
+                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Monthly Burn</span>
+                <p className="text-xl font-black text-[#32213A]">₹{analytics.monthlyBurn}</p>
               </div>
-              <div className="bg-white border-4 border-[#32213A] p-6 rounded-[2.5rem] shadow-[6px_6px_0px_#32213A] text-left">
-                <span className="text-[9px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-2">Daily Average</span>
-                <p className="text-2xl font-black text-[#32213A]">₹{analytics.dailyAvg}</p>
+              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
+                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Efficiency</span>
+                <p className="text-xl font-black text-[#32213A]">{analytics.taskEfficiency}%</p>
+              </div>
+              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
+                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Sentiment</span>
+                <p className="text-xl font-black text-[#32213A] uppercase tracking-tighter truncate">{analytics.topMood}</p>
+              </div>
+              <div className="bg-white border-2 border-[#32213A] p-5 text-left">
+                <span className="text-[8px] uppercase tracking-widest text-[#32213A]/40 font-black block mb-1">Daily Avg</span>
+                <p className="text-xl font-black text-[#32213A]">₹{analytics.dailyAvg}</p>
               </div>
             </div>
 
-            <div className="bg-white border-4 border-[#32213A] p-8 rounded-[3rem] shadow-[8px_8px_0px_#32213A] text-left">
-              <h3 className="text-[10px] uppercase tracking-[0.3em] text-[#32213A]/40 font-black mb-6">Capital Allocation</h3>
-              <div className="space-y-5">
+            {/* Spend Distribution */}
+            <div className="bg-white border-2 border-[#32213A] p-6 text-left">
+              <h3 className="text-[9px] uppercase tracking-[0.3em] text-[#32213A]/40 font-black mb-5">Expense Breakdown</h3>
+              <div className="space-y-4">
                 {Object.entries(analytics.categoryBreakdown).length > 0 ? (
-                  Object.entries(analytics.categoryBreakdown).sort((a: any, b: any) => b[1] - a[1]).slice(0, 4).map(([cat, amt]: any) => (
-                    <div key={cat} className="space-y-2">
-                      <div className="flex justify-between text-[11px] font-black text-[#32213A] uppercase tracking-tighter">
+                  Object.entries(analytics.categoryBreakdown).sort((a: any, b: any) => b[1] - a[1]).map(([cat, amt]: any) => (
+                    <div key={cat} className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-black text-[#32213A] uppercase tracking-tighter">
                         <span>{cat}</span>
                         <span>₹{amt}</span>
                       </div>
-                      <div className="h-3 bg-[#D4D6B9]/20 rounded-full border-2 border-[#32213A] overflow-hidden">
+                      <div className="h-2 bg-[#D4D6B9]/30 border border-[#32213A]/10 overflow-hidden">
                         <div 
-                          className="h-full bg-[#ADF7B6] rounded-full" 
+                          className="h-full bg-[#ADF7B6]" 
                           style={{ width: `${Math.min(100, (amt / Math.max(1, analytics.monthlyBurn)) * 100)}%` }}
                         ></div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs italic text-[#32213A]/20">No data synthesized.</p>
+                  <p className="text-[10px] italic text-[#32213A]/20 font-black uppercase tracking-widest">No transaction data</p>
                 )}
               </div>
             </div>
 
             <button 
               onClick={onClearAll}
-              className="w-full py-5 bg-white border-4 border-rose-500/20 text-rose-500 text-[10px] uppercase tracking-[0.4em] font-black hover:bg-rose-500 hover:text-white transition-all rounded-[2rem] mt-8"
+              className="w-full py-4 bg-white border-2 border-rose-500/30 text-rose-500 text-[10px] uppercase tracking-[0.4em] font-black hover:bg-rose-500 hover:text-white transition-all mt-6"
             >
-              Purge Vault
+              Purge All Data
             </button>
           </div>
         )}
