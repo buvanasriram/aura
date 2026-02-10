@@ -30,7 +30,22 @@ export const ConfirmView: React.FC<ConfirmViewProps> = ({ intent, rawText, entit
       base.details = base.details || rawText;
     } else if (intent === 'EXPENSE') {
       base.details = base.details || rawText;
-      base.category = base.category || 'Others';
+      // Ensure the suggested category exists in our list, otherwise fallback to 'Shopping' if relevant or 'Others'
+      const suggestedCat = base.category;
+      const categoryExists = categories.some(c => c.toLowerCase() === (suggestedCat || '').toLowerCase());
+      
+      if (!categoryExists) {
+        // Smart fallback logic if AI output wasn't perfect
+        const rt = rawText.toLowerCase();
+        if (rt.includes('shoe') || rt.includes('clothe') || rt.includes('dress') || rt.includes('buy')) {
+          base.category = 'Shopping';
+        } else {
+          base.category = 'Others';
+        }
+      } else {
+        // Map to exact casing from the list
+        base.category = categories.find(c => c.toLowerCase() === suggestedCat.toLowerCase()) || suggestedCat;
+      }
     }
     
     return base;

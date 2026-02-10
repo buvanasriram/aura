@@ -177,6 +177,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     }
 
     setInternalProcessing(true);
+    const today = new Date().toISOString().split('T')[0];
 
     try {
       const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -184,7 +185,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         model: 'gemini-3-flash-preview',
         contents: [{
           parts: [{
-            text: `Analyze: "${text}". Classify: EXPENSE, TODO, REMINDER, MOOD, or NOTE. Return JSON with 'intent' and 'entities' (vibe, headline, amount, category, details).`
+            text: `System: Aura Intelligence Engine.
+            Current Date: ${today}
+            Analyze: "${text}". 
+            
+            Task 1: Classify intent: EXPENSE, TODO, REMINDER, MOOD, or NOTE. 
+            Task 2: Resolve Dates. If user says "tomorrow", "next Monday", or "last night", resolve to YYYY-MM-DD based on Current Date (${today}).
+            Task 3: For EXPENSES, map to: Food, Groceries, Transport, Shopping, Bills, Entertainment, Medical, Others.
+            
+            Return JSON with 'intent' and 'entities' (vibe, headline, amount, category, details, date).`
           }]
         }],
         config: { 
@@ -200,7 +209,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
                   headline: { type: Type.STRING },
                   amount: { type: Type.NUMBER },
                   category: { type: Type.STRING },
-                  details: { type: Type.STRING }
+                  details: { type: Type.STRING },
+                  date: { type: Type.STRING, description: "Resolved YYYY-MM-DD date" }
                 },
                 required: ['vibe', 'headline']
               }
@@ -220,7 +230,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     }
   };
 
-  const getCardStyle = (intent: IntentType) => {
+  const getIntentColor = (intent: IntentType) => {
     switch (intent) {
       case 'EXPENSE': return 'bg-[#ADF7B6]'; 
       case 'REMINDER': return 'bg-[#F7EF81]';
@@ -321,20 +331,29 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden text-left">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-3 px-1">My Thoughts</h3>
-        <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pb-4">
+        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-4 px-1">My Thoughts</h3>
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-4">
           {recentEntries.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center border-4 border-dashed border-[#32213A]/10 rounded-3xl p-10">
               <p className="text-[9px] font-black uppercase tracking-widest text-[#32213A]/20 italic text-center leading-relaxed">System monitoring active.<br/>Speak to capture intelligence.</p>
             </div>
           ) : (
             recentEntries.map(entry => (
-              <div key={entry.id} className={`flex flex-col py-3 px-4 rounded-3xl transition-all border-2 border-[#32213A] shadow-[4px_4px_0px_#32213A] ${getCardStyle(entry.intent)}`}>
-                <div className="flex justify-between items-center mb-1">
-                   <span className="text-[7px] font-black text-[#32213A]/40 uppercase tracking-widest">{new Date(entry.createdAt).toLocaleDateString()}</span>
-                   <span className="text-[7px] font-black text-[#32213A]/60 uppercase tracking-widest">{entry.intent}</span>
+              <div key={entry.id} className="flex gap-4 items-start group">
+                <div className={`w-1 h-10 rounded-full shrink-0 ${getIntentColor(entry.intent)}`}></div>
+                <div className="flex-1 min-w-0 border-b-2 border-[#32213A]/5 pb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[7px] font-black text-[#32213A]/30 uppercase tracking-widest">
+                      {new Date(entry.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-[7px] font-black text-[#32213A]/40 uppercase tracking-widest">
+                      {entry.intent}
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-medium text-[#32213A] leading-snug line-clamp-2 italic">
+                    "{entry.rawText}"
+                  </p>
                 </div>
-                <p className="text-[12px] font-medium text-[#32213A] leading-tight">"{entry.rawText}"</p>
               </div>
             ))
           )}

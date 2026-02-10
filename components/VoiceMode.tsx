@@ -103,7 +103,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
   };
 
   const processText = async (textToProcess: string) => {
-    // Robust key check: Ensure process.env is synced with the window shim
     const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
     
     if (!apiKey) {
@@ -117,16 +116,26 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
     const today = new Date().toISOString().split('T')[0];
     
     try {
-      // Use standard initialization: apiKey from process.env.API_KEY
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview', 
         contents: [{
           parts: [{
-            text: `System: Aura High-End Emotional Analyst. Analyze: "${textToProcess}".
-            Date: ${today}
-            Rule: MUST generate 'vibe' (1 word) and 'headline' (3-5 words) for EVERY input.
-            Mapping Example: "Had a coffee" -> vibe: "Content", headline: "Quiet Morning Ritual"`
+            text: `System: Aura High-End Emotional Analyst. 
+            Analyze Input: "${textToProcess}".
+            
+            Current Date Context: ${today}
+            
+            Temporal Resolution Rule:
+            If the user specifies a relative date like "next Monday", "tomorrow", "this Friday", or "yesterday", you MUST calculate the absolute date string (YYYY-MM-DD) based on the Current Date Context (${today}).
+            
+            Entity Rules:
+            1. Vibe: 1-word emotional state.
+            2. Headline: 3-5 word summary.
+            3. Expense: If buying/spending, use categories: Food, Groceries, Transport, Shopping, Bills, Entertainment, Medical, Others.
+            4. Date: ALWAYS resolve and return as YYYY-MM-DD in the entities object.
+            
+            Output JSON strictly according to schema.`
           }]
         }],
         config: { 
@@ -144,7 +153,7 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ intentManager, onProcessin
                   amount: { type: Type.NUMBER },
                   category: { type: Type.STRING },
                   details: { type: Type.STRING },
-                  date: { type: Type.STRING },
+                  date: { type: Type.STRING, description: "Calculated YYYY-MM-DD date" },
                   priority: { type: Type.STRING },
                   text: { type: Type.STRING }
                 },
