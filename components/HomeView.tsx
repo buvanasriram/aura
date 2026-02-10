@@ -263,94 +263,94 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         </div>
       )}
 
-      <header className="shrink-0 pt-8 pb-6 flex justify-between items-start z-50">
+      <header className="shrink-0 pt-6 pb-4 flex justify-between items-start z-50">
         <div className="text-left">
           <div className="flex items-center gap-2">
-            <h1 className="text-4xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
+            <h1 className="text-3xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
             <span className="bg-[#32213A] text-white text-[7px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">v0.1</span>
           </div>
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mt-1">Smart Assist</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mt-1">Smart Assist</p>
         </div>
         
         <div className="flex flex-col items-center">
-          <div className="flex gap-3 mb-2">
-            <button onClick={onViewHistory} className="w-12 h-12 rounded-xl bg-white border-4 border-[#32213A] flex items-center justify-center text-[#32213A] active:scale-95 transition-all neo-pop-shadow">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+          <div className="flex gap-2 mb-1">
+            <button onClick={onViewHistory} className="w-10 h-10 rounded-xl bg-white border-[3px] border-[#32213A] flex items-center justify-center text-[#32213A] active:scale-95 transition-all neo-pop-shadow">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
             </button>
-            <div className="relative w-12 h-12">
+            <div className="relative w-10 h-10">
                <canvas ref={canvasRef} width={80} height={80} className={`absolute inset-[-10px] w-[calc(100%+20px)] h-[calc(100%+20px)] transition-opacity duration-300 pointer-events-none ${isRecording ? 'opacity-100' : 'opacity-0'}`} />
-               <button onClick={() => isRecording ? stopVoice() : startVoice()} disabled={isBusy} className={`w-full h-full rounded-xl border-4 border-[#32213A] flex items-center justify-center transition-all neo-pop-shadow relative z-10 ${isRecording ? 'bg-red-500 text-white translate-y-1 shadow-none' : 'bg-white text-[#32213A] active:scale-95'}`}>
-                  {isRecording ? <div className="w-4 h-4 bg-white rounded-sm animate-pulse"></div> : <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>}
+               <button onClick={() => isRecording ? stopVoice() : startVoice()} disabled={isBusy} className={`w-full h-full rounded-xl border-[3px] border-[#32213A] flex items-center justify-center transition-all neo-pop-shadow relative z-10 ${isRecording ? 'bg-red-500 text-white translate-y-1 shadow-none' : 'bg-white text-[#32213A] active:scale-95'}`}>
+                  {isRecording ? <div className="w-4 h-4 bg-white rounded-sm animate-pulse"></div> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>}
                </button>
             </div>
           </div>
-          <span className={`text-[7px] font-black uppercase tracking-widest text-center leading-tight ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#32213A]/30'}`}>
+          <span className={`text-[6px] font-black uppercase tracking-widest text-center leading-tight ${isRecording ? 'text-red-500 animate-pulse' : 'text-[#32213A]/30'}`}>
             {isRecording ? "Listening" : "System Ready"}
           </span>
         </div>
       </header>
 
       {upcomingAlerts.length > 0 && (
-        <div className="mb-4 shrink-0 space-y-2 text-left">
+        <div className="mb-3 shrink-0 space-y-1.5 text-left">
            <h3 className="text-[8px] font-black uppercase tracking-[0.3em] text-[#32213A]/40 px-2">Upcoming Alerts</h3>
            {upcomingAlerts.map(alert => (
-             <div key={alert.id} className="bg-[#F7EF81] p-3 rounded-2xl flex items-center gap-3 border-2 border-[#32213A]">
-               <NeoPopIcon type="ALERTS" className="w-5 h-5" colorOverride="#32213A" />
-               <p className="text-[11px] font-black text-[#32213A] truncate leading-tight">{alert.title}</p>
+             <div key={alert.id} className="bg-[#F7EF81] p-2.5 rounded-xl flex items-center gap-3 border-2 border-[#32213A]">
+               <NeoPopIcon type="ALERTS" className="w-4 h-4" colorOverride="#32213A" />
+               <p className="text-[10px] font-black text-[#32213A] truncate leading-tight">{alert.title}</p>
              </div>
            ))}
         </div>
       )}
 
-      <div className="mb-4 shrink-0 p-5 bg-white rounded-[2.5rem] flex items-center justify-between border-4 border-[#32213A] shadow-[4px_4px_0px_#32213A]">
-        <div className="flex items-center gap-4">
-          <NeoPopIcon type="CASH" className="w-12 h-12" colorOverride="#ADF7B6" />
+      <div className="mb-3 shrink-0 p-4 bg-white rounded-[2rem] flex items-center justify-between border-[3px] border-[#32213A] shadow-[3px_3px_0px_#32213A]">
+        <div className="flex items-center gap-3">
+          <NeoPopIcon type="CASH" className="w-10 h-10" colorOverride="#ADF7B6" />
           <div className="flex flex-col text-left">
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#32213A]/40 mb-1">Expenses</span>
-            <span className="text-3xl font-black text-[#32213A] tracking-tighter leading-none">₹{totalSpend.toLocaleString()}</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40 mb-0.5">Expenses</span>
+            <span className="text-2xl font-black text-[#32213A] tracking-tighter leading-none">₹{totalSpend.toLocaleString()}</span>
           </div>
         </div>
       </div>
 
-      <div className="shrink-0 flex justify-around items-center py-4 mb-4 border-y-4 border-[#32213A]/10">
+      <div className="shrink-0 flex justify-around items-center py-3 mb-3 border-y-2 border-[#32213A]/10">
         <div className="flex items-center gap-3 text-left">
-          <NeoPopIcon type="TASKS" className="w-8 h-8" colorOverride="#ADD2C2" />
+          <NeoPopIcon type="TASKS" className="w-7 h-7" colorOverride="#ADD2C2" />
           <div className="flex flex-col">
-            <span className="text-xl font-black text-[#32213A] leading-none">{realTasksCount}</span>
-            <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40 mt-1">tasks</span>
+            <span className="text-lg font-black text-[#32213A] leading-none">{realTasksCount}</span>
+            <span className="text-[7px] font-black uppercase tracking-widest text-[#32213A]/40 mt-0.5">tasks</span>
           </div>
         </div>
-        <div className="w-1 h-8 bg-[#32213A]/10 rounded-full"></div>
+        <div className="w-0.5 h-6 bg-[#32213A]/10 rounded-full"></div>
         <div className="flex items-center gap-3 text-left">
-          <NeoPopIcon type="PULSE" className="w-8 h-8" colorOverride="#B892FF" />
+          <NeoPopIcon type="PULSE" className="w-7 h-7" colorOverride="#B892FF" />
           <div className="flex flex-col">
-            <span className="text-xl font-black text-[#32213A] leading-none truncate max-w-[100px]">{currentMoodText}</span>
-            <span className="text-[8px] font-black uppercase tracking-widest text-[#32213A]/40 mt-1">Vibe</span>
+            <span className="text-lg font-black text-[#32213A] leading-none truncate max-w-[100px]">{currentMoodText}</span>
+            <span className="text-[7px] font-black uppercase tracking-widest text-[#32213A]/40 mt-0.5">Vibe</span>
           </div>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden text-left">
-        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-4 px-1">My Thoughts</h3>
-        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-4">
+        <h3 className="text-[9px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mb-3 px-1">My Thoughts</h3>
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 pb-4">
           {recentEntries.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center border-4 border-dashed border-[#32213A]/10 rounded-3xl p-10">
               <p className="text-[9px] font-black uppercase tracking-widest text-[#32213A]/20 italic text-center leading-relaxed">System monitoring active.<br/>Speak to capture intelligence.</p>
             </div>
           ) : (
             recentEntries.map(entry => (
-              <div key={entry.id} className="flex gap-4 items-start group">
-                <div className={`w-1 h-10 rounded-full shrink-0 ${getIntentColor(entry.intent)}`}></div>
-                <div className="flex-1 min-w-0 border-b-2 border-[#32213A]/5 pb-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[7px] font-black text-[#32213A]/30 uppercase tracking-widest">
+              <div key={entry.id} className="flex gap-3 items-start group">
+                <div className={`w-0.5 h-8 rounded-full shrink-0 ${getIntentColor(entry.intent)}`}></div>
+                <div className="flex-1 min-w-0 border-b-2 border-[#32213A]/5 pb-2">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="text-[6px] font-black text-[#32213A]/30 uppercase tracking-widest">
                       {new Date(entry.createdAt).toLocaleDateString()}
                     </span>
-                    <span className="text-[7px] font-black text-[#32213A]/40 uppercase tracking-widest">
+                    <span className="text-[6px] font-black text-[#32213A]/40 uppercase tracking-widest">
                       {entry.intent}
                     </span>
                   </div>
-                  <p className="text-[13px] font-medium text-[#32213A] leading-snug line-clamp-2 italic">
+                  <p className="text-[12px] font-medium text-[#32213A] leading-tight line-clamp-2 italic">
                     "{entry.rawText}"
                   </p>
                 </div>
