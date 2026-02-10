@@ -17,8 +17,6 @@ interface HomeViewProps {
 
 const NeoPopIcon = ({ type, className, colorOverride }: { type: string, className?: string, colorOverride?: string }) => {
   const iconBase = `shrink-0 neo-pop-shadow ${className || ''}`;
-  
-  // Explicitly constrained dimensions to prevent the "skewed UI" bug
   const size = className?.includes('w-12') ? "48" : className?.includes('w-8') ? "32" : "24";
 
   switch (type) {
@@ -107,13 +105,20 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
           const y1 = centerY + Math.sin(angle) * 18;
           const x2 = centerX + Math.cos(angle) * (18 + barHeight);
           const y2 = centerY + Math.sin(angle) * (18 + barHeight);
-          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
-          ctx.strokeStyle = '#32213A'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.beginPath(); 
+          ctx.moveTo(x1, y1); 
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = '#32213A'; 
+          ctx.lineWidth = 2.5; 
+          ctx.lineCap = 'round'; 
+          ctx.stroke();
         }
       };
       draw();
       return stream;
-    } catch (e) { return null; }
+    } catch (e) { 
+      return null; 
+    }
   };
 
   const startVoice = async () => {
@@ -175,8 +180,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
     setInternalProcessing(true);
 
     try {
-      // Use standard initialization: apiKey from process.env.API_KEY
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: [{
