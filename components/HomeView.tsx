@@ -277,7 +277,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ expenses, voiceEntries, task
         <div className="text-left">
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-black tracking-tighter text-[#32213A] leading-none">Aura</h1>
-            <span className="bg-[#32213A] text-white text-[7px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">v0.1</span>
+            <span className="bg-[#32213A] text-white text-[7px] px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">v0.2</span>
           </div>
           <p className="text-[8px] font-black uppercase tracking-[0.4em] text-[#32213A]/40 mt-1">Smart Assist</p>
         </div>
