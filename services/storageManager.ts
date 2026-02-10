@@ -1,6 +1,6 @@
 
 import { AppState, VoiceEntry, Expense, Task, MoodRecord, NoteRecord } from '../types';
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
+import * as XLSX from 'xlsx';
 
 const DB_NAME = 'AuraRelationalVault';
 const DB_VERSION = 7; 
