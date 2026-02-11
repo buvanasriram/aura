@@ -153,7 +153,7 @@ const App: React.FC = () => {
   };
 
   const handleClearDatabase = async () => {
-    if (confirm("Purge vault? This will erase all persistent records.")) {
+    if (confirm("Purge detailed notes? This will erase all persistent records.")) {
       await auraStore.purgeAll();
       await loadAppState();
     }

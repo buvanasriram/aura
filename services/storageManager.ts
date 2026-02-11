@@ -173,7 +173,7 @@ export class StorageManager {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `aura_vault_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `aura_notes_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -238,7 +238,7 @@ export class StorageManager {
     XLSX.utils.book_append_sheet(wb, wsEntries, "System Logs");
 
     // Write file
-    XLSX.writeFile(wb, `aura_vault_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `aura_notes_report_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 }
 
