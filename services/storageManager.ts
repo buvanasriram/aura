@@ -101,6 +101,83 @@ export class StorageManager {
     });
   }
 
+  /**
+   * Safe Merge Import:
+   * Re-generates IDs to avoid conflicts while maintaining foreign key relationships.
+   */
+  async importBackupJSON(jsonData: any): Promise<void> {
+    if (!this.db) await this.init();
+    
+    const idMap = new Map<string, string>();
+    const generateNewId = () => Math.random().toString(36).substring(2, 9);
+
+    const transaction = this.db!.transaction(Object.values(TABLES), 'readwrite');
+    
+    // 1. Process Voice Entries first to build the ID map
+    if (Array.isArray(jsonData.voiceEntries)) {
+      const store = transaction.objectStore(TABLES.ENTRIES);
+      jsonData.voiceEntries.forEach((entry: VoiceEntry) => {
+        const oldId = entry.id;
+        const newId = generateNewId();
+        idMap.set(oldId, newId);
+        store.put({ ...entry, id: newId });
+      });
+    }
+
+    // 2. Process Relational Items (Expenses, Moods, Notes)
+    if (Array.isArray(jsonData.expenses)) {
+      const store = transaction.objectStore(TABLES.EXPENSES);
+      jsonData.expenses.forEach((e: Expense) => {
+        store.put({ ...e, id: generateNewId(), entryId: idMap.get(e.entryId) || generateNewId() });
+      });
+    }
+
+    if (Array.isArray(jsonData.moods)) {
+      const store = transaction.objectStore(TABLES.MOODS);
+      jsonData.moods.forEach((m: MoodRecord) => {
+        store.put({ ...m, id: generateNewId(), entryId: idMap.get(m.entryId) || generateNewId() });
+      });
+    }
+
+    if (Array.isArray(jsonData.notes)) {
+      const store = transaction.objectStore(TABLES.NOTES);
+      jsonData.notes.forEach((n: NoteRecord) => {
+        store.put({ ...n, id: generateNewId(), entryId: idMap.get(n.entryId) || generateNewId() });
+      });
+    }
+
+    // 3. Process Non-Relational Items (Tasks)
+    if (Array.isArray(jsonData.tasks)) {
+      const store = transaction.objectStore(TABLES.TASKS);
+      jsonData.tasks.forEach((t: Task) => {
+        store.put({ ...t, id: generateNewId() });
+      });
+    }
+
+    // 4. Process Categories (Unique by name/id)
+    if (Array.isArray(jsonData.categories)) {
+      const store = transaction.objectStore(TABLES.CATEGORIES);
+      jsonData.categories.forEach((cat: string) => {
+        store.put({ id: cat });
+      });
+    }
+
+    return new Promise((resolve) => {
+      transaction.oncomplete = () => resolve();
+    });
+  }
+
+  async exportBackupJSON() {
+    const state = await this.loadState();
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `aura_vault_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async exportBackup() {
     const state = await this.loadState();
     

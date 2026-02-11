@@ -18,21 +18,22 @@ const App: React.FC = () => {
   
   const isReadyRef = useRef(false);
 
+  const loadAppState = async () => {
+    try {
+      await auraStore.init();
+      const savedState = await auraStore.loadState();
+      if (!savedState.notes) savedState.notes = [];
+      setState(savedState);
+      isReadyRef.current = true;
+      setIsInitializing(false);
+    } catch (e) {
+      console.error("[AURA] Load State Error:", e);
+      setIsInitializing(false);
+    }
+  };
+
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        await auraStore.init();
-        const savedState = await auraStore.loadState();
-        if (!savedState.notes) savedState.notes = [];
-        setState(savedState);
-        isReadyRef.current = true;
-        setIsInitializing(false);
-      } catch (e) {
-        console.error("[AURA] Init Error:", e);
-        setIsInitializing(false);
-      }
-    };
-    initApp();
+    loadAppState();
   }, []);
 
   const handleToggleTask = async (taskId: string) => {
@@ -154,8 +155,7 @@ const App: React.FC = () => {
   const handleClearDatabase = async () => {
     if (confirm("Purge vault? This will erase all persistent records.")) {
       await auraStore.purgeAll();
-      const savedState = await auraStore.loadState();
-      setState(savedState);
+      await loadAppState();
     }
   };
 
@@ -212,6 +212,7 @@ const App: React.FC = () => {
           onClearAll={handleClearDatabase}
           onExport={() => auraStore.exportBackup()}
           onToggleTask={handleToggleTask}
+          onImportState={loadAppState}
         />
       )}
       {isProcessing && <ProcessingView />}
