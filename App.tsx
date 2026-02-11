@@ -35,6 +35,26 @@ const App: React.FC = () => {
     initApp();
   }, []);
 
+  const handleToggleTask = async (taskId: string) => {
+    if (!state) return;
+    const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) return;
+
+    const updatedTask = { ...state.tasks[taskIndex], completed: !state.tasks[taskIndex].completed };
+    
+    try {
+      await auraStore.saveItem('TASKS', updatedTask);
+      setState(prev => {
+        if (!prev) return prev;
+        const newTasks = [...prev.tasks];
+        newTasks[taskIndex] = updatedTask;
+        return { ...prev, tasks: newTasks };
+      });
+    } catch (e) {
+      console.error("[AURA] Toggle Task Error:", e);
+    }
+  };
+
   const handleConfirmAction = async (finalData: any) => {
     if (!processingData || !state || !isReadyRef.current) return;
     
@@ -191,6 +211,7 @@ const App: React.FC = () => {
           onBack={() => setView(AppView.HOME)}
           onClearAll={handleClearDatabase}
           onExport={() => auraStore.exportBackup()}
+          onToggleTask={handleToggleTask}
         />
       )}
       {isProcessing && <ProcessingView />}
